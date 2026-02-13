@@ -1,170 +1,206 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Grapple Shooter</title>
+    <title>Imp Cubes</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #222; color: white; font-family: sans-serif; }
-        canvas { display: block; }
-        #ui { position: absolute; top: 10px; left: 10px; }
+        body { margin: 0; background: #111; overflow: hidden; font-family: 'Segoe UI', sans-serif; color: white; }
+        
+        /* THE GAME CANVAS */
+        canvas { display: block; position: absolute; top: 0; left: 0; z-index: 1; }
+
+        /* THE MENU OVERLAY */
+        #menu {
+            position: absolute; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 10;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+        }
+
+        .box {
+            background: #222; padding: 30px; border-radius: 12px;
+            text-align: center; border: 2px solid #4488FF;
+            box-shadow: 0 0 20px rgba(68, 136, 255, 0.3);
+            width: 300px;
+        }
+
+        h1 { margin: 0 0 20px 0; color: #4488FF; letter-spacing: 2px; }
+        
+        input, select, button {
+            width: 100%; padding: 10px; margin-bottom: 15px;
+            background: #333; border: 1px solid #555; color: white;
+            border-radius: 5px; font-size: 16px; box-sizing: border-box;
+        }
+
+        button { background: #4488FF; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { background: #6699FF; transform: scale(1.05); }
+
+        /* HUD (Heads Up Display) */
+        #hud { position: absolute; top: 10px; left: 10px; z-index: 5; pointer-events: none; display: none; }
     </style>
 </head>
 <body>
-    <div id="ui">
-        <h3>WASD to Move | Click to Shoot | Right Click to Grapple | SPACE to Parry</h3>
-        <input type="text" id="pass" placeholder="Enter Staff Key">
-        <button onclick="login()">Auth</button>
+
+    <div id="menu">
+        <div class="box">
+            <h1>IMP CUBES</h1>
+            
+            <label>Username</label>
+            <input type="text" id="username" placeholder="Enter Name" maxlength="12">
+
+            <label>Skin Color</label>
+            <input type="color" id="colorPicker" value="#4488FF">
+
+            <label>Login (Staff Only)</label>
+            <input type="email" id="email" placeholder="Email (Optional)">
+            
+            <button onclick="startGame()">PLAY GAME</button>
+        </div>
     </div>
-    <canvas id="gameCanvas"></canvas>
+
+    <div id="hud">
+        <h3>WASD to Move | SHIFT to Sprint</h3>
+        <h3>L-Click: Shoot | R-Click: Grapple | SPACE: Parry</h3>
+    </div>
+
+    <canvas id="game"></canvas>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        const canvas = document.getElementById('gameCanvas');
+        const canvas = document.getElementById('game');
         const ctx = canvas.getContext('2d');
+        const menu = document.getElementById('menu');
+        const hud = document.getElementById('hud');
 
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        let mouse = { x: 0, y: 0 };
+        let gameActive = false;
         let cam = { x: 0, y: 0 };
+        let mouse = { x: 0, y: 0 };
         const keys = {};
 
-        // INPUT HANDLERS
-        window.addEventListener('keydown', e => keys[e.code] = true);
-        window.addEventListener('keyup', e => keys[e.code] = false);
-        window.addEventListener('mousemove', e => {
-            mouse.x = e.clientX + cam.x;
-            mouse.y = e.clientY + cam.y;
-        });
-        window.addEventListener('mousedown', e => {
-            if(e.button === 0) { // Left Click
-                const angle = Math.atan2(mouse.y - (window.innerHeight/2 + cam.y), mouse.x - (window.innerWidth/2 + cam.x));
-                socket.emit('shoot', Math.atan2(mouse.y - myPos.y, mouse.x - myPos.x));
-            }
-        });
-        
-        // Prevent context menu for right click grapple
-        window.addEventListener('contextmenu', e => e.preventDefault());
+        // --- MENU LOGIC ---
+        function startGame() {
+            const name = document.getElementById('username').value || "Guest";
+            const color = document.getElementById('colorPicker').value;
+            const email = document.getElementById('email').value; // For staff login
 
-        function login() {
-            const key = document.getElementById('pass').value;
-            socket.emit('login', key);
+            // Send Join Request
+            socket.emit('join', { name, color, email });
         }
 
-        let myPos = {x:0, y:0};
+        // Server tells us the game is ready
+        socket.on('gameStart', () => {
+            menu.style.display = 'none'; // Hide Menu
+            hud.style.display = 'block'; // Show HUD
+            gameActive = true;
+        });
 
-        // RENDER LOOP
+        // --- INPUT HANDLING ---
+        window.onkeydown = e => keys[e.code] = true;
+        window.onkeyup = e => keys[e.code] = false;
+        
+        window.onmousemove = e => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        };
+
+        let mouseDown = false;
+        let rightDown = false;
+        window.onmousedown = e => {
+            if(e.button === 0) mouseDown = true;
+            if(e.button === 2) rightDown = true;
+        };
+        window.onmouseup = e => {
+            if(e.button === 0) mouseDown = false;
+            if(e.button === 2) rightDown = false;
+        };
+        window.oncontextmenu = e => e.preventDefault();
+
+        // --- RENDER LOOP ---
         socket.on('state', (state) => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Find my player to center camera
-            const myPlayer = state.players[socket.id];
-            if(myPlayer) {
-                myPos = myPlayer;
-                cam.x = myPlayer.x - canvas.width / 2;
-                cam.y = myPlayer.y - canvas.height / 2;
+            if(!gameActive) return; // Don't draw if in menu
+
+            const me = state.players[socket.id];
+            if(me) {
+                cam.x = me.x - canvas.width/2 + 20;
+                cam.y = me.y - canvas.height/2 + 20;
             }
 
+            ctx.fillStyle = '#222';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.save();
             ctx.translate(-cam.x, -cam.y);
 
-            // Draw World Grid
-            ctx.strokeStyle = '#333';
-            ctx.beginPath();
-            for(let i=0; i<2000; i+=100) {
-                ctx.moveTo(i, 0); ctx.lineTo(i, 2000);
-                ctx.moveTo(0, i); ctx.lineTo(2000, i);
-            }
-            ctx.stroke();
+            // Draw Walls
+            ctx.fillStyle = '#444';
+            state.walls.forEach(w => {
+                ctx.fillRect(w.x, w.y, w.w, w.h);
+                ctx.strokeStyle = '#666'; ctx.strokeRect(w.x, w.y, w.w, w.h);
+            });
 
             // Draw Players
-            for (const id in state.players) {
+            for(let id in state.players) {
                 const p = state.players[id];
                 
                 // Grapple Line
-                if (p.grapple.active) {
-                    ctx.beginPath();
-                    ctx.moveTo(p.x, p.y);
-                    ctx.lineTo(p.grapple.x, p.grapple.y);
-                    ctx.strokeStyle = '#fff';
-                    ctx.stroke();
+                if(p.grapple.active) {
+                    ctx.beginPath(); ctx.moveTo(p.x+20, p.y+20); ctx.lineTo(p.grapple.x, p.grapple.y);
+                    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
                 }
 
                 // Parry Shield
-                if (p.parry.active) {
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, 40, 0, Math.PI * 2);
-                    ctx.strokeStyle = 'cyan';
-                    ctx.lineWidth = 3;
-                    ctx.stroke();
-                    ctx.lineWidth = 1;
+                if(p.parry.active) {
+                    ctx.beginPath(); ctx.arc(p.x+20, p.y+20, 50, 0, Math.PI*2);
+                    ctx.strokeStyle = 'cyan'; ctx.stroke();
                 }
 
-                // Player Body
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, 20, 0, Math.PI * 2);
-                ctx.fillStyle = p.role.color;
-                ctx.fill();
-                
-                // Name/Role
+                // Body
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, p.w, p.h);
+
+                // Eyes
+                const angle = p.angle;
+                const ex = Math.cos(angle) * 5, ey = Math.sin(angle) * 5;
                 ctx.fillStyle = 'white';
-                ctx.font = '12px Arial';
-                ctx.fillText(`${p.role.name} [${p.score}]`, p.x - 20, p.y - 30);
-                
-                // Health Bar
-                ctx.fillStyle = 'red';
-                ctx.fillRect(p.x - 20, p.y + 25, 40, 5);
-                ctx.fillStyle = 'green';
-                ctx.fillRect(p.x - 20, p.y + 25, 40 * (p.hp / p.role.hp), 5);
+                ctx.beginPath(); ctx.arc(p.x+10, p.y+15, 6, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(p.x+30, p.y+15, 6, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = 'black';
+                ctx.beginPath(); ctx.arc(p.x+10+ex, p.y+15+ey, 3, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(p.x+30+ex, p.y+15+ey, 3, 0, Math.PI*2); ctx.fill();
+
+                // Name & HP
+                ctx.fillStyle = 'white'; ctx.font = '12px Arial';
+                ctx.fillText(p.name, p.x, p.y - 20);
+                ctx.fillStyle = 'red'; ctx.fillRect(p.x, p.y-15, 40, 5);
+                ctx.fillStyle = '#0f0'; ctx.fillRect(p.x, p.y-15, 40*(p.hp/p.maxHp), 5);
             }
 
             // Draw Bullets
-            for (const b of state.bullets) {
-                ctx.beginPath();
-                ctx.arc(b.x, b.y, b.parried ? 8 : 5, 0, Math.PI * 2);
-                ctx.fillStyle = b.parried ? 'cyan' : 'yellow';
-                ctx.fill();
-            }
+            state.bullets.forEach(b => {
+                ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI*2);
+                ctx.fillStyle = b.parried ? 'white' : b.color; ctx.fill();
+            });
 
             ctx.restore();
         });
 
-        // SEND INPUT LOOP
+        // --- INPUT LOOP ---
         setInterval(() => {
-            socket.emit('input', {
-                up: keys['KeyW'],
-                down: keys['KeyS'],
-                left: keys['KeyA'],
-                right: keys['KeyD'],
-                grapple: keys['KeyQ'] || (navigator.userAgent.includes('Mac') ? keys['MetaRight'] : false), // Alternative key needed sometimes
-                // Using Mouse Right Click (button 2) is handled in logic usually, 
-                // but let's send Grapple status if right mouse is held
-                grapple: keys['ShiftLeft'], // Let's use Shift for Grapple for simplicity in code
-                parry: keys['Space'],
-                mouseX: mouse.x,
-                mouseY: mouse.y
-            });
-        }, 1000 / 60);
+            if(!gameActive) return;
+            const mx = mouse.x + cam.x;
+            const my = mouse.y + cam.y;
+            const angle = Math.atan2(my - (window.innerHeight/2 + cam.y), mx - (window.innerWidth/2 + cam.x));
 
-        // Right click listener update for loop
-        let rightDown = false;
-        window.addEventListener('mousedown', e => { if(e.button === 2) rightDown = true; });
-        window.addEventListener('mouseup', e => { if(e.button === 2) rightDown = false; });
-        
-        // Override input loop to include mouse
-        setInterval(() => {
             socket.emit('input', {
-                up: keys['KeyW'],
-                down: keys['KeyS'],
-                left: keys['KeyA'],
-                right: keys['KeyD'],
-                grapple: rightDown, 
-                parry: keys['Space'],
-                mouseX: mouse.x,
-                mouseY: mouse.y
+                up: keys['KeyW'], down: keys['KeyS'], left: keys['KeyA'], right: keys['KeyD'],
+                sprint: keys['ShiftLeft'], // ADDED SPRINT
+                shoot: mouseDown, grapple: rightDown, parry: keys['Space'],
+                mx: mx, my: my, angle: angle
             });
-        }, 1000 / 60);
-
+        }, 1000/60);
     </script>
 </body>
 </html>

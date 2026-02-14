@@ -6,7 +6,7 @@ const fs = require('fs');
 
 app.use(express.static('public'));
 
-const ROUND_TIME = 180; // 3 Minutes
+const ROUND_TIME = 1800; // 3 Minutes
 const VOTE_TIME = 15;
 const END_TIME = 10;
 const DB_FILE = 'database.json';

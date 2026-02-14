@@ -1,134 +1,91 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Imp Cubes - Chat & Controls</title>
+    <title>Imp Cubes - KOTH/CTF</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        body { margin: 0; background: #0a0a10; overflow: hidden; font-family: 'Segoe UI', sans-serif; color: white; }
+        body { margin: 0; background: #0a0a10; overflow: hidden; font-family: 'Segoe UI', sans-serif; color: white; touch-action: none; user-select: none; }
         canvas { display: block; position: absolute; top: 0; left: 0; }
-
-        /* GLASS STYLE */
-        .glass-panel {
-            background: rgba(20, 20, 30, 0.85);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            border-radius: 12px;
-            padding: 30px;
-            text-align: center;
-        }
-
-        #mainMenu {
-            position: absolute; width: 100%; height: 100%;
-            background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%);
-            z-index: 100;
-            display: flex; align-items: center; justify-content: center;
-        }
-
-        .authBox { width: 320px; display: flex; flex-direction: column; gap: 10px; }
-        h1 { margin: 0 0 10px 0; color: #4488FF; font-weight: 800; font-size: 2.5em; text-shadow: 0 0 15px rgba(68,136,255,0.5); }
-        input { width: 100%; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid #444; color: white; border-radius: 6px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 12px; cursor: pointer; border: none; font-weight: bold; border-radius: 6px; }
-        .btn-blue { background: #4488FF; color: white; } .btn-green { background: #00b894; color: white; } .btn-outline { background: transparent; border: 1px solid #555; color: #aaa; }
-
-        #pauseMenu { display: none; position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 50; align-items: center; justify-content: center; }
-        .menuPanel { width: 450px; }
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tabBtn { flex: 1; padding: 10px; background: rgba(255,255,255,0.05); border: none; color: #888; cursor: pointer; border-radius: 6px; }
-        .tabBtn.active { background: #4488FF; color: white; }
-        .section { display: none; text-align: left; } .section.active { display: block; animation: fadeIn 0.3s; }
-        .shopItem { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #333; }
-
-        /* --- CONTROLS OVERLAY --- */
-        #controlsHelp {
-            position: absolute; top: 10px; right: 10px; z-index: 10;
-            background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px;
-            font-size: 13px; color: #ccc; pointer-events: none;
-            border: 1px solid #333;
-        }
-        #controlsHelp h4 { margin: 0 0 5px 0; color: #fff; border-bottom: 1px solid #555; padding-bottom: 3px; }
-
-        /* --- CHAT BOX --- */
-        #chatBox {
-            position: absolute; bottom: 10px; left: 10px; z-index: 20;
-            width: 300px;
-        }
-        #chatMessages {
-            height: 150px; overflow-y: auto; 
-            text-shadow: 1px 1px 0 #000;
-            margin-bottom: 5px;
-            display: flex; flex-direction: column; justify-content: flex-end;
-        }
-        .chat-line { margin-bottom: 2px; font-size: 14px; }
-        #chatInput {
-            width: 100%; padding: 8px; background: rgba(0,0,0,0.6);
-            border: 1px solid #444; color: white; border-radius: 4px;
-            display: none; /* Hidden until active */
-        }
-        #chatInput.visible { display: block; }
+        
+        .glass-panel { background: rgba(20, 20, 30, 0.9); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; text-align: center; }
+        .overlay { position: absolute; width: 100%; height: 100%; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); }
+        
+        .btn { padding: 10px; border: none; font-weight: bold; border-radius: 6px; width: 100%; cursor: pointer; margin-top:5px; transition:0.2s; }
+        .btn:hover { transform: scale(1.05); }
+        .btn-blue { background: #4488FF; color: white; }
+        .btn-red { background: #ff4444; color: white; }
+        .kit-btn { flex: 1; padding: 10px 5px; background: #333; border: 2px solid #444; color: #aaa; border-radius: 5px; cursor: pointer; font-size: 11px; }
+        .kit-btn.selected { border-color: #4488FF; color: white; background: rgba(68,136,255,0.2); }
 
         /* HUD */
-        #hud { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 5; display: none; pointer-events: none; }
-        .hud-bar { background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 20px; display: flex; gap: 15px; align-items: center; backdrop-filter: blur(4px); border: 1px solid #444; }
-        .weapon-icon { padding: 5px 10px; border-radius: 5px; color: #888; font-size: 14px; font-weight: bold; }
-        .weapon-active { color: #FFD700; background: rgba(255, 215, 0, 0.15); border: 1px solid rgba(255,215,0,0.3); }
+        #hud { position: absolute; top: 10px; width: 100%; text-align: center; pointer-events: none; }
+        .score-box { display: inline-block; background: rgba(0,0,0,0.6); padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 18px; border: 1px solid #444; }
+        
+        /* LEADERBOARD */
+        .leaderboard-row { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #333; width: 300px; }
+        .rank-1 { color: gold; font-size: 1.2em; }
+        .rank-2 { color: silver; }
+        .rank-3 { color: #cd7f32; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        /* VOTING */
+        .vote-container { display: flex; gap: 20px; }
+        .vote-section { width: 200px; }
     </style>
 </head>
 <body>
 
-    <div id="mainMenu">
-        <div class="glass-panel authBox">
-            <h1>IMP CUBES</h1>
-            <input id="user" placeholder="Username">
-            <input id="email" placeholder="Email (Owner Only)">
-            <input id="pass" type="password" placeholder="Password">
-            <input id="color" type="color" value="#4488FF" style="height:40px; border:none; padding:0; cursor:pointer;">
-            <button class="btn btn-blue" onclick="login()">Log In</button>
-            <button class="btn btn-green" onclick="signup()">Sign Up</button>
-            <button class="btn btn-outline" onclick="guest()">Guest</button>
-            <div id="msg" style="margin-top:10px; font-size:14px;"></div>
+    <div id="mainMenu" class="overlay">
+        <div class="glass-panel" style="width: 320px;">
+            <h1 style="color:#4488FF; margin:0 0 10px 0;">IMP CUBES</h1>
+            <input id="user" placeholder="Username" style="width:100%; padding:10px; margin-bottom:5px; background:#333; border:1px solid #555; color:white;">
+            <input id="email" placeholder="Email (Owner)" style="width:100%; padding:10px; margin-bottom:5px; background:#333; border:1px solid #555; color:white;">
+            <input id="pass" type="password" placeholder="Password" style="width:100%; padding:10px; margin-bottom:10px; background:#333; border:1px solid #555; color:white;">
+            
+            <div style="display:flex; gap:5px; margin-bottom:10px;">
+                <div class="kit-btn selected" onclick="selKit('shotgun',this)">BREACHER</div>
+                <div class="kit-btn" onclick="selKit('assault',this)">SOLDIER</div>
+                <div class="kit-btn" onclick="selKit('sniper',this)">RECON</div>
+                <div class="kit-btn" onclick="selKit('tank',this)">TANK</div>
+            </div>
+            
+            <button class="btn btn-blue" onclick="auth('login')">LOGIN & PLAY</button>
+            <button class="btn btn-blue" style="background:#00b894" onclick="auth('signup')">SIGN UP</button>
+            <div id="msg" style="margin-top:5px; font-size:12px"></div>
         </div>
     </div>
 
-    <div id="controlsHelp" style="display:none;">
-        <h4>CONTROLS</h4>
-        <div><b>WASD</b> - Move</div>
-        <div><b>SHIFT</b> - Dash</div>
-        <div><b>CLICK</b> - Shoot</div>
-        <div><b>R-CLICK</b> - Grapple</div>
-        <div><b>1-5</b> - Weapons</div>
-        <div><b>ENTER</b> - Chat</div>
-        <div><b>L</b> - Menu / Settings</div>
-    </div>
-
-    <div id="chatBox" style="display:none;">
-        <div id="chatMessages"></div>
-        <input id="chatInput" placeholder="Type message...">
-    </div>
-
-    <div id="pauseMenu">
-        <div class="glass-panel menuPanel">
-            <h2 style="margin-top:0; color:#fff;">PAUSED</h2>
-            <div class="tabs">
-                <button class="tabBtn active" onclick="switchTab('shop')">Shop</button>
-                <button class="tabBtn" onclick="switchTab('settings')">Settings</button>
-            </div>
-            <div id="tab-shop" class="section active">
-                <h4 style="color:gold; margin:0 0 10px 0;">Balance: <span id="cpDisplay">0</span> CP</h4>
-                <div class="shopItem"><span>Top Hat</span> <button class="btn btn-green" style="width:auto; padding:5px 15px;" onclick="buy('hat_top')">100</button></div>
-                <div class="shopItem"><span>Fez</span> <button class="btn btn-green" style="width:auto; padding:5px 15px;" onclick="buy('hat_fez')">250</button></div>
-            </div>
-            <div id="tab-settings" class="section">
-                <div class="shopItem"><span>Change Name</span> <div style="display:flex; gap:5px;"><input id="newName" placeholder="New Name" style="padding:5px; width:100px;"><button class="btn btn-blue" style="width:auto; padding:5px;" onclick="rename()">Set</button></div></div>
-                <div class="shopItem"><span>Show Names</span> <input type="checkbox" checked onchange="toggleNames(this.checked)"></div>
-                <div class="shopItem"><span>Background Dim</span> <input type="range" min="0" max="100" oninput="bgDim = this.value/100"></div>
-            </div>
-            <br><button class="btn btn-blue" onclick="toggleMenu()">Resume Game</button>
+    <div id="gameOverMenu" class="overlay" style="display:none;">
+        <div class="glass-panel">
+            <h1 style="color:gold">ROUND OVER</h1>
+            <h3 id="winnerText"></h3>
+            <div id="lbRows"></div>
+            <p>Next round starting soon...</p>
         </div>
     </div>
 
-    <div id="hud"><div class="hud-bar" id="weaponBar"></div></div>
+    <div id="voteMenu" class="overlay" style="display:none;">
+        <div class="glass-panel">
+            <h2>VOTE NEXT ROUND</h2>
+            <div class="vote-container">
+                <div class="vote-section">
+                    <h3>MODE</h3>
+                    <button class="btn btn-blue" onclick="vote('mode','FFA')">FFA</button>
+                    <button class="btn btn-blue" onclick="vote('mode','KOTH')">KOTH</button>
+                    <button class="btn btn-blue" onclick="vote('mode','CTF')">CTF</button>
+                </div>
+                <div class="vote-section">
+                    <h3>MAP</h3>
+                    <button class="btn btn-blue" onclick="vote('map',0)">ARENA</button>
+                    <button class="btn btn-blue" onclick="vote('map',1)">MAZE</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="hud">
+        <div class="score-box" id="topHud">WARMUP</div>
+    </div>
+
     <canvas id="game"></canvas>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -138,146 +95,111 @@
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
 
-        let myId = null, gameActive = false, showMenu = false, rgbTick = 0;
-        let bgDim = 0.2, showNames = true;
+        let myId=null, kit='shotgun', rgbTick=0;
+        
+        function selKit(k,el) { kit=k; document.querySelectorAll('.kit-btn').forEach(b=>b.classList.remove('selected')); el.classList.add('selected'); }
+        function auth(type) { 
+            let u=document.getElementById('user').value, p=document.getElementById('pass').value, e=document.getElementById('email').value;
+            socket.emit(type, {user:u, pass:p, email:e, kit:kit}); 
+        }
+        function vote(type, val) { socket.emit('vote', {type, val}); document.getElementById('voteMenu').style.display='none'; }
 
-        function val(id) { return document.getElementById(id).value; }
-        function login() { socket.emit('login', { user: val('user'), pass: val('pass'), color: val('color') }); }
-        function signup() { socket.emit('signup', { user: val('user'), email: val('email'), pass: val('pass') }); }
-        function guest() { socket.emit('guest', { color: val('color') }); }
-        function buy(item) { socket.emit('buy', item); }
-        function rename() { socket.emit('rename', val('newName')); }
-        function toggleNames(v) { showNames = v; }
+        socket.on('authMsg', d => document.getElementById('msg').innerText = d.msg);
+        socket.on('startGame', d => { myId=d.id; document.getElementById('mainMenu').style.display='none'; });
 
-        socket.on('authMsg', d => {
-            const el = document.getElementById('msg');
-            el.innerText = d.msg; el.style.color = d.success ? '#0f0' : '#f55';
-        });
+        socket.on('gameover', d => {
+            document.getElementById('gameOverMenu').style.display = 'flex';
+            let winText = "FFA Winner: " + d.top[0].username;
+            if(d.scores.red > d.scores.blue) winText = "RED TEAM WINS!";
+            if(d.scores.blue > d.scores.red) winText = "BLUE TEAM WINS!";
+            document.getElementById('winnerText').innerText = winText;
 
-        socket.on('startGame', d => {
-            myId = d.id;
-            document.getElementById('mainMenu').style.display = 'none';
-            document.getElementById('hud').style.display = 'block';
-            document.getElementById('controlsHelp').style.display = 'block';
-            document.getElementById('chatBox').style.display = 'block';
-            gameActive = true;
-        });
-
-        // CHAT LOGIC
-        const chatInput = document.getElementById('chatInput');
-        const chatMessages = document.getElementById('chatMessages');
-
-        socket.on('chatMsg', (data) => {
-            const line = document.createElement('div');
-            line.className = 'chat-line';
-            line.innerHTML = `<span style="color:${data.color}; font-weight:bold;">${data.user}:</span> <span style="color:#eee;">${data.text}</span>`;
-            chatMessages.appendChild(line);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            let html = "";
+            d.top.forEach((p, i) => {
+                html += `<div class="leaderboard-row"><span class="rank-${i+1}">#${i+1} ${p.username}</span> <span>${p.score} pts</span></div>`;
+            });
+            document.getElementById('lbRows').innerHTML = html;
         });
 
         // INPUTS
-        const keys = {};
-        let mouseDown = false, rightDown = false;
-        const mouse = { x: 0, y: 0 };
+        const keys={w:0,a:0,s:0,d:0,shift:0}; const mouse={x:0,y:0,down:0,right:0};
+        window.onkeydown=e=>{if(e.code=='KeyW')keys.w=1;if(e.code=='KeyS')keys.s=1;if(e.code=='KeyA')keys.a=1;if(e.code=='KeyD')keys.d=1;if(e.code=='ShiftLeft')keys.shift=1;};
+        window.onkeyup=e=>{if(e.code=='KeyW')keys.w=0;if(e.code=='KeyS')keys.s=0;if(e.code=='KeyA')keys.a=0;if(e.code=='KeyD')keys.d=0;if(e.code=='ShiftLeft')keys.shift=0;};
+        window.onmousedown=e=>{if(e.button==0)mouse.down=1;if(e.button==2)mouse.right=1;};
+        window.onmouseup=e=>{if(e.button==0)mouse.down=0;if(e.button==2)mouse.right=0;};
+        window.onmousemove=e=>{mouse.x=e.clientX; mouse.y=e.clientY;};
+        window.oncontextmenu=e=>e.preventDefault();
 
-        window.onmousemove = e => { mouse.x = e.clientX; mouse.y = e.clientY; };
-        window.onmousedown = e => { if(e.button===0) mouseDown=true; if(e.button===2) rightDown=true; };
-        window.onmouseup = e => { if(e.button===0) mouseDown=false; if(e.button===2) rightDown=false; };
-        window.oncontextmenu = e => e.preventDefault();
-        
-        window.onkeydown = e => {
-            // IF CHAT IS OPEN, BLOCK GAME INPUTS
-            if(document.activeElement === chatInput) {
-                if(e.code === 'Enter') {
-                    socket.emit('chat', chatInput.value);
-                    chatInput.value = '';
-                    chatInput.classList.remove('visible');
-                    chatInput.blur(); // Unfocus
-                }
-                return; // Stop here, don't process game keys
-            }
+        socket.on('state', s => {
+            if(!myId) return;
+            const me = s.players[myId]; if(!me) return;
+            const g = s.game;
 
-            if(e.code === 'Enter') {
-                chatInput.classList.add('visible');
-                chatInput.focus();
-                return;
-            }
+            // UI LOGIC
+            if(g.phase === 'GAME') document.getElementById('gameOverMenu').style.display='none';
+            if(g.phase === 'VOTE') { document.getElementById('gameOverMenu').style.display='none'; document.getElementById('voteMenu').style.display='flex'; }
+            else document.getElementById('voteMenu').style.display='none';
 
-            keys[e.code] = true;
-            if(e.code === 'KeyL') toggleMenu();
-            if(e.key >= 1 && e.key <= 5) socket.emit('switch', parseInt(e.key)-1);
-        };
-        window.onkeyup = e => keys[e.code] = false;
+            let hudText = `${Math.floor(g.timer/60)}:${(g.timer%60).toString().padStart(2,'0')}`;
+            if(g.mode !== 'FFA') hudText += ` | <span style="color:#ff5555">${g.scores.red}</span> - <span style="color:#4488ff">${g.scores.blue}</span>`;
+            document.getElementById('topHud').innerHTML = hudText;
 
-        function toggleMenu() {
-            showMenu = !showMenu;
-            document.getElementById('pauseMenu').style.display = showMenu ? 'flex' : 'none';
-        }
+            // RENDER
+            rgbTick+=2; const rainbow=`hsl(${rgbTick},100%,50%)`;
+            const cam={x:me.x-canvas.width/2+20, y:me.y-canvas.height/2+20};
 
-        function switchTab(tab) {
-            document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tabBtn').forEach(el => el.classList.remove('active'));
-            document.getElementById('tab-'+tab).classList.add('active');
-            event.target.classList.add('active');
-        }
-
-        socket.on('state', (state) => {
-            if(!gameActive || !myId) return;
-            const me = state.players[myId];
-            if(!me) return;
-
-            if(me.inventory) {
-                let html = "";
-                me.inventory.forEach((w, i) => {
-                    let active = (i === me.activeWeapon) ? 'weapon-active' : '';
-                    html += `<div class="weapon-icon ${active}">${i+1}. ${w.toUpperCase()}</div>`;
-                });
-                document.getElementById('weaponBar').innerHTML = html;
-            }
-            document.getElementById('cpDisplay').innerText = me.money;
-
-            rgbTick += 2; const rainbow = `hsl(${rgbTick}, 100%, 50%)`;
-            const cam = { x: me.x - canvas.width/2 + 20, y: me.y - canvas.height/2 + 20 };
-
-            ctx.fillStyle = "#121212"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle="#111"; ctx.fillRect(0,0,canvas.width,canvas.height);
             ctx.save(); ctx.translate(-cam.x, -cam.y);
 
-            ctx.fillStyle = '#2a2a35';
-            state.walls.forEach(w => { ctx.fillRect(w.x, w.y, w.w, w.h); ctx.strokeStyle='#3a3a45'; ctx.strokeRect(w.x, w.y, w.w, w.h); });
+            // WALLS
+            ctx.fillStyle='#333'; s.game.walls.forEach(w=>{ctx.fillRect(w.x,w.y,w.w,w.h); ctx.strokeStyle='#444'; ctx.strokeRect(w.x,w.y,w.w,w.h);});
 
-            for(let id in state.players) {
-                const p = state.players[id];
-                const isOwner = (p.maxHp >= 300);
-                if(p.grapple.active) { ctx.beginPath(); ctx.moveTo(p.x+20, p.y+20); ctx.lineTo(p.grapple.x, p.grapple.y); ctx.strokeStyle = isOwner ? rainbow : '#fff'; ctx.lineWidth=2; ctx.stroke(); }
-                ctx.fillStyle = isOwner ? rainbow : p.color; ctx.fillRect(p.x, p.y, p.w, p.h);
-
-                if(p.hat === 'hat_top') { ctx.fillStyle='#111'; ctx.fillRect(p.x, p.y-10, 40, 10); ctx.fillRect(p.x+5, p.y-35, 30, 25); }
-                else if(p.hat === 'hat_fez') { ctx.fillStyle='#b00'; ctx.fillRect(p.x+5, p.y-15, 30, 15); ctx.fillStyle='gold'; ctx.fillRect(p.x+15, p.y-15, 5, 10); }
-
-                const angle = p.angle; const ex = Math.cos(angle)*5, ey = Math.sin(angle)*5;
-                ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(p.x+10, p.y+15, 6, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(p.x+30, p.y+15, 6, 0, 7); ctx.fill();
-                ctx.fillStyle='black'; ctx.beginPath(); ctx.arc(p.x+10+ex, p.y+15+ey, 3, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(p.x+30+ex, p.y+15+ey, 3, 0, 7); ctx.fill();
-
-                if(showNames) { ctx.fillStyle = isOwner ? rainbow : 'white'; ctx.font = isOwner ? 'bold 14px Arial' : '12px Arial'; ctx.fillText(p.username, p.x, p.y - 25); }
-                ctx.fillStyle='red'; ctx.fillRect(p.x, p.y-10, 40, 5); ctx.fillStyle='#00e676'; ctx.fillRect(p.x, p.y-10, 40*(p.hp/p.maxHp), 5);
+            // ZONES (KOTH)
+            if(g.mode === 'KOTH' && g.hill) {
+                ctx.fillStyle = 'rgba(255,255,0,0.2)'; 
+                ctx.fillRect(g.hill.x, g.hill.y, g.hill.w, g.hill.h);
+                ctx.strokeStyle='yellow'; ctx.strokeRect(g.hill.x, g.hill.y, g.hill.w, g.hill.h);
+                ctx.fillStyle='white'; ctx.fillText("HILL", g.hill.x+80, g.hill.y+100);
             }
 
-            state.bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI*2); ctx.fillStyle = (b.size > 10) ? rainbow : b.color; ctx.fill(); });
+            // PLAYERS
+            for(let id in s.players) {
+                let p = s.players[id];
+                let isOwner = p.maxHp>=500;
+                if(p.grapple.active){ctx.beginPath();ctx.moveTo(p.x+20,p.y+20);ctx.lineTo(p.grapple.x,p.grapple.y);ctx.strokeStyle=isOwner?rainbow:'#fff';ctx.stroke();}
+                ctx.fillStyle = isOwner ? rainbow : p.color; ctx.fillRect(p.x, p.y, p.w, p.h);
+                
+                // Name
+                ctx.fillStyle='white'; ctx.font='12px Arial'; ctx.fillText(p.username, p.x, p.y-15);
+                // HP
+                ctx.fillStyle='red'; ctx.fillRect(p.x, p.y-10, 40, 5); ctx.fillStyle='#0f0'; ctx.fillRect(p.x, p.y-10, 40*(p.hp/p.maxHp), 5);
+            }
+
+            // FLAGS (CTF)
+            if(g.mode === 'CTF') {
+                g.flags.forEach(f => {
+                    ctx.fillStyle = f.team==='RED'?'red':'blue';
+                    ctx.beginPath(); ctx.arc(f.x, f.y, 15, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle='white'; ctx.fillText("FLAG", f.x-15, f.y-20);
+                });
+            }
+
+            // BULLETS
+            s.bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, Math.PI*2); ctx.fillStyle=(b.owner===myId)?'white':'yellow'; ctx.fill(); });
+            
             ctx.restore();
         });
 
-        setInterval(() => {
-            if(!gameActive) return;
-            const camX = (state && state.players[myId]) ? state.players[myId].x - canvas.width/2 : 0;
-            const camY = (state && state.players[myId]) ? state.players[myId].y - canvas.height/2 : 0;
-            const angle = Math.atan2(mouse.y - canvas.height/2, mouse.x - canvas.width/2);
-            socket.emit('input', { 
-                up: keys['KeyW'], down: keys['KeyS'], left: keys['KeyA'], right: keys['KeyD'], 
-                dash: keys['ShiftLeft'], shoot: mouseDown, grapple: rightDown, 
-                angle: angle, gx: mouse.x + camX, gy: mouse.y + camY 
+        // INPUT LOOP
+        setInterval(()=>{
+            if(!myId)return;
+            const cx=0, cy=0; // Cam offset handling would go here for mouse logic
+            let ang = Math.atan2(mouse.y-canvas.height/2, mouse.x-canvas.width/2);
+            socket.emit('input', {
+                up:keys.w, down:keys.s, left:keys.a, right:keys.d, dash:keys.shift,
+                shoot:mouse.down, grapple:mouse.right, angle:ang, gx:mouse.x, gy:mouse.y
             });
         }, 1000/60);
-        let state = null; socket.on('state', s => state = s);
     </script>
 </body>
 </html>

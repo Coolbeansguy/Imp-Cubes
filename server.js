@@ -2,25 +2,19 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
+const fs = require('fs');
 
 app.use(express.static('public'));
 
-// CONFIG
-const MAP_SIZE = { x: 1600, y: 1200 };
+// --- CONFIGURATION ---
+const MAP_SIZE = { x: 2000, y: 1500 };
 const WALLS = [
-    { x: 200, y: 200, w: 100, h: 400 },
-    { x: 600, y: 500, w: 600, h: 100 },
-    { x: 1000, y: 200, w: 200, h: 200 },
-    { x: 400, y: 900, w: 800, h: 50 },
-    { x: -50, y: 0, w: 50, h: 1200 }, { x: 1600, y: 0, w: 50, h: 1200 },
-    { x: 0, y: -50, w: 1600, h: 50 }, { x: 0, y: 1200, w: 1600, h: 50 }
+    { x: 300, y: 300, w: 100, h: 400 },
+    { x: 800, y: 600, w: 400, h: 100 },
+    { x: 1200, y: 200, w: 200, h: 200 },
+    { x: -50, y: 0, w: 50, h: MAP_SIZE.y }, { x: MAP_SIZE.x, y: 0, w: 50, h: MAP_SIZE.y },
+    { x: 0, y: -50, w: MAP_SIZE.x, h: 50 }, { x: 0, y: MAP_SIZE.y, w: MAP_SIZE.x, h: 50 }
 ];
-
-// ACCOUNTS (Simple email check)
-const STAFF = {
-    'owner@imp.com': { role: 'OWNER', hp: 300, color: '#FFD700', weapon: 'rpg' },
-    'admin@imp.com': { role: 'ADMIN', hp: 200, color: '#FF4500', weapon: 'sniper' }
-};
 
 const WEAPONS = {
     pistol: { damage: 15, speed: 18, cooldown: 20, size: 5, color: '#FFD700' },
@@ -28,180 +22,201 @@ const WEAPONS = {
     rpg:    { damage: 60, speed: 10, cooldown: 80, size: 12, color: '#FF4500' }
 };
 
+// --- DATABASE ---
+const DB_FILE = 'database.json';
+let userDB = {};
+
+// Load Database
+if (fs.existsSync(DB_FILE)) {
+    try { userDB = JSON.parse(fs.readFileSync(DB_FILE)); } catch(e) { console.log(e); }
+}
+
+function saveDB() {
+    fs.writeFileSync(DB_FILE, JSON.stringify(userDB));
+}
+
+// --- STATE ---
 const players = {};
 const bullets = [];
 
+// --- HELPERS ---
+function getSafeSpawn() {
+    let x, y, hit;
+    let attempts = 0;
+    do {
+        x = Math.random() * (MAP_SIZE.x - 100) + 50;
+        y = Math.random() * (MAP_SIZE.y - 100) + 50;
+        hit = WALLS.some(w => x < w.x + w.w && x + 40 > w.x && y < w.y + w.h && y + 40 > w.y);
+        attempts++;
+    } while (hit && attempts < 100);
+    return { x, y };
+}
+
 io.on('connection', (socket) => {
-    console.log('User connected', socket.id);
-
-    // WAIT for the "join" event before creating the player
     socket.on('join', (data) => {
-        let roleData = { role: 'Imp', hp: 100, color: data.color || '#4488FF', weapon: 'pistol' };
-
-        // Check Login
-        if (STAFF[data.email]) {
-            const staff = STAFF[data.email];
-            roleData = { 
-                role: staff.role, 
-                hp: staff.hp, 
-                color: staff.color, 
-                weapon: staff.weapon 
-            };
+        // Load saved data or create default
+        let saved = userDB[data.username] || { money: 0, xp: 0, hat: 'none' };
+        
+        // Save user to DB if new
+        if (!userDB[data.username]) {
+            userDB[data.username] = saved;
+            saveDB();
         }
 
+        // Staff Logic
+        let role = { hp: 100, weapon: 'pistol' };
+        if (data.email === 'owner@imp.com') role = { hp: 300, weapon: 'rpg' };
+        else if (data.email === 'admin@imp.com') role = { hp: 200, weapon: 'sniper' };
+
+        const spawn = getSafeSpawn();
+
         players[socket.id] = {
-            x: 100 + Math.random() * 500,
-            y: 100 + Math.random() * 500,
-            w: 40, h: 40,
+            id: socket.id,
+            x: spawn.x, y: spawn.y, w: 40, h: 40,
             vx: 0, vy: 0,
-            hp: roleData.hp, maxHp: roleData.hp,
-            role: roleData.role,
-            color: roleData.color,
-            weapon: WEAPONS[roleData.weapon],
-            name: data.name || "Unknown Imp",
-            grapple: { active: false, x:0, y:0 },
-            parry: { active: false, timer: 0 },
+            hp: role.hp, maxHp: role.hp,
+            color: data.color || '#4488FF',
+            username: data.username || "Guest",
+            weapon: WEAPONS[role.weapon],
+            money: saved.money,
+            hat: saved.hat,
+            grapple: { active: false, x: 0, y: 0 },
             score: 0
         };
-        
-        socket.emit('gameStart'); // Tell client to hide menu
+
+        socket.emit('init', { mapSize: MAP_SIZE, id: socket.id });
     });
 
     socket.on('input', (data) => {
         const p = players[socket.id];
-        if (!p) return; // Ignore inputs if player hasn't joined yet
+        if (!p) return;
 
         p.angle = data.angle;
-
-        // --- IMPROVED MOVEMENT ---
-        // 1. Calculate direction
-        let dx = (data.right ? 1 : 0) - (data.left ? 1 : 0);
-        let dy = (data.down ? 1 : 0) - (data.up ? 1 : 0);
-
-        // 2. Normalize diagonal movement (Pythagorean theorem)
-        if (dx !== 0 || dy !== 0) {
-            const length = Math.sqrt(dx*dx + dy*dy);
-            dx /= length;
-            dy /= length;
-        }
-
-        // 3. Apply Speed (Sprint if Shift is held)
-        const speed = data.sprint ? 1.5 : 0.8;
-        p.vx += dx * speed;
-        p.vy += dy * speed;
-
-        // --- ACTIONS ---
-        // Grapple
-        if (data.grapple && !p.grapple.active) {
-            // Only grapple walls
-            for(let w of WALLS) {
-                if(data.mx > w.x && data.mx < w.x+w.w && data.my > w.y && data.my < w.y+w.h) {
-                    p.grapple.active = true;
-                    p.grapple.x = data.mx; p.grapple.y = data.my;
-                    break;
-                }
-            }
-        } else if (!data.grapple) p.grapple.active = false;
-
-        // Parry
-        if (data.parry && p.parry.timer <= 0) {
-            p.parry.active = true;
-            p.parry.timer = 60;
-            // Parry logic
-             bullets.forEach(b => {
-                const dist = Math.sqrt((b.x - (p.x+20))**2 + (b.y - (p.y+20))**2);
-                if (dist < 60 && b.owner !== socket.id) {
-                    b.vx *= -1.5; b.vy *= -1.5; b.owner = socket.id; b.parried = true;
-                }
-            });
-        }
+        
+        // Movement
+        let speed = data.sprint ? 1.5 : 0.8;
+        if (data.up) p.vy -= speed;
+        if (data.down) p.vy += speed;
+        if (data.left) p.vx -= speed;
+        if (data.right) p.vx += speed;
 
         // Shoot
         if (data.shoot && (!p.shootTimer || p.shootTimer <= 0)) {
             p.shootTimer = p.weapon.cooldown;
             bullets.push({
-                x: p.x+20, y: p.y+20,
+                x: p.x + 20, y: p.y + 20,
                 vx: Math.cos(p.angle) * p.weapon.speed,
                 vy: Math.sin(p.angle) * p.weapon.speed,
-                damage: p.weapon.damage, size: p.weapon.size, color: p.weapon.color,
-                owner: socket.id, life: 100
+                damage: p.weapon.damage,
+                size: p.weapon.size,
+                color: p.weapon.color,
+                owner: socket.id,
+                life: 100
             });
+        }
+        
+        // Grapple
+        if (data.grapple && !p.grapple.active) {
+             if(data.gx) { p.grapple.active = true; p.grapple.x = data.gx; p.grapple.y = data.gy; }
+        } else if(!data.grapple) p.grapple.active = false;
+    });
+
+    socket.on('buy', (item) => {
+        const p = players[socket.id];
+        if (!p) return;
+
+        // Cost Logic
+        let cost = 0;
+        if (item === 'hat_top') cost = 100;
+        if (item === 'hat_fez') cost = 250;
+
+        if (p.money >= cost) {
+            p.money -= cost;
+            p.hat = item;
+            
+            // Save to DB
+            if(userDB[p.username]) {
+                userDB[p.username].money = p.money;
+                userDB[p.username].hat = p.hat;
+                saveDB();
+            }
         }
     });
 
-    socket.on('disconnect', () => delete players[socket.id]);
+    socket.on('disconnect', () => {
+        delete players[socket.id];
+    });
 });
 
-// GAME LOOP
+// --- GAME LOOP ---
 setInterval(() => {
-    // Update Physics
+    // 1. Update Players
     for (const id in players) {
         const p = players[id];
         p.x += p.vx; p.y += p.vy;
         p.vx *= 0.9; p.vy *= 0.9; // Friction
+        if (p.shootTimer > 0) p.shootTimer--;
         
         // Wall Collision
         WALLS.forEach(w => {
             if (p.x < w.x + w.w && p.x + p.w > w.x && p.y < w.y + w.h && p.y + p.h > w.y) {
-                p.x -= p.vx * 1.2; p.y -= p.vy * 1.2; // Bounce back slightly
-                p.vx = 0; p.vy = 0;
+                p.x -= p.vx * 1.2; p.y -= p.vy * 1.2; p.vx = 0; p.vy = 0;
             }
         });
-
-        if(p.grapple.active) {
-             const dx = p.grapple.x - (p.x + 20);
-             const dy = p.grapple.y - (p.y + 20);
-             p.vx += dx * 0.002; p.vy += dy * 0.002;
-        }
-
-        if(p.shootTimer > 0) p.shootTimer--;
-        if(p.parry.timer > 0) p.parry.timer--;
-        if(p.parry.timer < 45) p.parry.active = false;
-    }
-
-    // Update Bullets
-// ... inside the bullet collision loop ...
-
-if (p.hp <= 0) {
-    // 1. Respawn the dead player
-    const spawn = getSafeSpawn();
-    p.x = spawn.x;
-    p.y = spawn.y;
-    p.hp = p.maxHp;
-
-    // 2. Give "Cube Points" to the killer
-    if (players[b.owner]) {
-        players[b.owner].score++;      // Add Kill
-        players[b.owner].money += 50;  // Add 50 Cube Points
         
-        // Save immediately so they don't lose it
-        if(userDB[players[b.owner].username]) {
-            userDB[players[b.owner].username].money = players[b.owner].money;
-            saveDB();
+        // Grapple Pull
+        if(p.grapple.active) {
+            const dx = p.grapple.x - (p.x+20), dy = p.grapple.y - (p.y+20);
+            p.vx += dx * 0.002; p.vy += dy * 0.002;
         }
+        
+        // Map Boundaries
+        if(p.x < 0) p.x=0; if(p.x > MAP_SIZE.x) p.x=MAP_SIZE.x;
+        if(p.y < 0) p.y=0; if(p.y > MAP_SIZE.y) p.y=MAP_SIZE.y;
     }
-}
 
-        // Hit Walls
-        WALLS.forEach(w => {
-            if (b.x > w.x && b.x < w.x + w.w && b.y > w.y && b.y < w.y + w.h) hit = true;
-        });
+    // 2. Update Bullets
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.x += b.vx; b.y += b.vy; b.life--;
+        let hit = false;
+        
+        // Wall Hit
+        if(WALLS.some(w => b.x > w.x && b.x < w.x + w.w && b.y > w.y && b.y < w.y + w.h)) hit = true;
 
-        // Hit Players
         if(!hit) {
-            for (const id in players) {
+            for(const id in players) {
                 const p = players[id];
-                if (b.owner !== id && b.x > p.x && b.x < p.x + p.w && b.y > p.y && b.y < p.y + p.h) {
+                // Check collision
+                if(b.owner !== id && b.x > p.x && b.x < p.x + p.w && b.y > p.y && b.y < p.y + p.h) {
                     p.hp -= b.damage;
                     hit = true;
+                    
+                    // --- PLAYER DEATH LOGIC (Added here) ---
                     if(p.hp <= 0) {
-                        p.x = 200; p.y = 200; p.hp = p.maxHp;
-                        if(players[b.owner]) players[b.owner].score++;
+                        // 1. Respawn the dead player
+                        const spawn = getSafeSpawn();
+                        p.x = spawn.x;
+                        p.y = spawn.y;
+                        p.hp = p.maxHp;
+
+                        // 2. Give "Cube Points" to the killer
+                        if (players[b.owner]) {
+                            players[b.owner].score++;       // Add Kill
+                            players[b.owner].money += 50;   // Add 50 Cube Points
+                            
+                            // Save immediately so they don't lose it
+                            if(userDB[players[b.owner].username]) {
+                                userDB[players[b.owner].username].money = players[b.owner].money;
+                                saveDB();
+                            }
+                        }
                     }
+                    // ---------------------------------------
                 }
             }
         }
-        if (hit || b.life <= 0) bullets.splice(i, 1);
+        if(hit || b.life <= 0) bullets.splice(i, 1);
     }
 
     io.emit('state', { players, bullets, walls: WALLS });

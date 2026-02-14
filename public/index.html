@@ -82,8 +82,9 @@
                     <button class="btn btn-purple" onclick="socket.emit('staffAction',{type:'toggleGod'})">TOGGLE GOD</button>
                     <button class="btn btn-blue" onclick="socket.emit('staffAction',{type:'spawnDummy'})">SPAWN DUMMY</button>
                     <button class="btn btn-green" onclick="socket.emit('staffAction',{type:'giveCP'})">+1000 CP</button>
-                    <button class="btn btn-red" onclick="socket.emit('staffAction',{type:'clearDummies'})">CLEAR DUMMIES</button>
+                    <button class="btn btn-red" onclick="socket.emit('staffAction',{type:'skipRound'})">SKIP ROUND</button>
                 </div>
+                <button class="btn btn-red" style="margin-top:10px" onclick="socket.emit('staffAction',{type:'clearDummies'})">CLEAR DUMMIES</button>
             </div>
         </div>
     </div>
@@ -155,14 +156,14 @@
         });
 
         socket.on('chatMsg', d => {
-            if(!myId) return; // FIX: Don't show chat if not logged in
+            if(!myId) return; 
             const l = document.createElement('div');
             l.innerHTML = `<span style="color:${d.color}">${d.user}:</span> ${d.text}`;
             document.getElementById('chatMsgs').appendChild(l);
         });
 
         socket.on('gameover', d => {
-            if(!myId) return; // FIX: Don't show gameover if not logged in
+            if(!myId) return; 
             document.getElementById('voteMenu').style.display='flex';
             document.getElementById('voteSection').style.display='block';
             document.getElementById('voteTitle').innerText = "ROUND OVER";

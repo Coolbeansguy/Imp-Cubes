@@ -22,7 +22,7 @@ const KITS = {
     shotgun: { name: 'Breacher', hp: 160, speed: 0.9, weapon: { damage: 9, speed: 18, cooldown: 55, ammo: 5, reload: 150, count: 6, spread: 0.3, range: 40 } },
     sniper: { name: 'Recon', hp: 80, speed: 1.1, weapon: { damage: 95, speed: 45, cooldown: 80, ammo: 3, reload: 180, spread: 0.0, range: 200 } },
     tank: { name: 'Heavy', hp: 300, speed: 0.7, weapon: { damage: 8, speed: 20, cooldown: 5, ammo: 100, reload: 300, spread: 0.15, range: 70 } },
-    ninja: { name: 'Ninja', hp: 1.3, speed: 1.3, weapon: { damage: 25, speed: 30, cooldown: 15, ammo: 10, reload: 60, spread: 0.02, range: 50 } }
+    ninja: { name: 'Ninja', hp: 90, speed: 1.3, weapon: { damage: 25, speed: 30, cooldown: 15, ammo: 10, reload: 60, spread: 0.02, range: 50 } }
 };
 
 const GOD_KIT = { name:'ADMIN', hp:5000, speed:1.5, weapon:{damage:5000,speed:40,cooldown:5,ammo:999,reload:0,range:500}};
@@ -64,6 +64,7 @@ function getSpawn(team) {
 function resetGame(mode, mapIdx) {
     // Safety check: if mapIdx is somehow undefined, default to 0
     if(!MAPS[mapIdx]) mapIdx = 0;
+    console.log(`Resetting game to Mode: ${mode}, Map: ${MAPS[mapIdx].name}`);
 
     gameState.mode = mode; 
     gameState.mapIndex = mapIdx; 
@@ -85,7 +86,6 @@ function resetGame(mode, mapIdx) {
 
     Object.keys(players).forEach((id, i) => {
         let p = players[id];
-        // Clean up zombies/dummies/dead players
         if(p.type === 'zombie' || p.isDummy) { delete players[id]; return; }
         
         if (mode === 'ZOMBIES') {
@@ -100,7 +100,7 @@ function resetGame(mode, mapIdx) {
         respawn(p);
     });
 
-    // IMPORTANT: Tell all clients the map has changed so they reload walls!
+    // Send new map to all clients
     io.emit('mapChange', { 
         walls: gameState.walls, 
         mode: gameState.mode, 
@@ -146,12 +146,24 @@ io.on('connection', (socket) => {
         saveDB(); socket.emit('authMsg',{s:true,m:"Created"});
     });
 
+    // --- FIXED VOTE HANDLER ---
     socket.on('vote', (d) => {
         const p = players[socket.id];
         if(gameState.phase === 'VOTE' && p) {
             let weight = p.isOwner ? 50 : 1; 
-            if(d.type === 'map') gameState.votes.map[d.val] = (gameState.votes.map[d.val]||0)+weight;
-            if(d.type === 'mode') gameState.votes.mode[d.val] = (gameState.votes.mode[d.val]||0)+weight;
+            console.log(`[Vote] ${p.username} voted:`, d);
+
+            // Handle "Old Style" (String)
+            if (typeof d === 'string') {
+                if(['FFA','KOTH','CTF','ZOMBIES'].includes(d)) {
+                     gameState.votes.mode[d] = (gameState.votes.mode[d]||0)+weight;
+                }
+            } 
+            // Handle "New Style" (Object)
+            else if (typeof d === 'object') {
+                if(d.type === 'map') gameState.votes.map[d.val] = (gameState.votes.map[d.val]||0)+weight;
+                if(d.type === 'mode') gameState.votes.mode[d.val] = (gameState.votes.mode[d.val]||0)+weight;
+            }
         }
     });
 
@@ -221,7 +233,7 @@ function auth(s, d, isLogin) {
         type: 'player', dead: false, lives: 3
     };
     respawn(players[s.id]);
-    s.emit('startGame', { id:s.id, isOwner:isOwner, walls: gameState.walls }); // Send initial walls
+    s.emit('startGame', { id:s.id, isOwner:isOwner, walls: gameState.walls }); 
 }
 
 resetGame('FFA', 0);
@@ -248,7 +260,7 @@ setInterval(() => {
             }
             if(target) {
                 let angle = Math.atan2(target.y - z.y, target.x - z.x);
-                z.angle = angle; // SAVE THE ANGLE for the client!
+                z.angle = angle;
                 z.vx += Math.cos(angle) * (z.speed * 0.2);
                 z.vy += Math.sin(angle) * (z.speed * 0.2);
                 
@@ -278,8 +290,11 @@ setInterval(() => {
     else if(gameState.phase === 'VOTE') {
         gameState.timer--;
         if(gameState.timer <= 0) {
+            // Tally Votes
             let mode='FFA', mm=0; for(let m in gameState.votes.mode) if(gameState.votes.mode[m]>mm){mode=m;mm=gameState.votes.mode[m];}
             let map=0, mp=0; for(let m in gameState.votes.map) if(gameState.votes.map[m]>mp){map=parseInt(m);mp=gameState.votes.map[m];}
+            
+            console.log(`[Result] Mode: ${mode}, Map: ${map}`);
             resetGame(mode, map);
         }
     }

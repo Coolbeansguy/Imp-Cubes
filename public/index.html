@@ -10,8 +10,9 @@
         body { margin: 0; background: var(--bg); overflow: hidden; font-family: 'Nunito', sans-serif; color: white; touch-action: none; user-select: none; }
         canvas { display: block; }
 
-        .glass { background: rgba(30,35,45,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); text-align: center; }
+        .glass { background: rgba(30,35,45,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); text-align: center; position: relative; }
         .overlay { position: absolute; width: 100%; height: 100%; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.9); }
+        
         h1, h2 { font-family: 'Fredoka One'; color: var(--primary); margin-top: 0; }
         .btn { width: 100%; padding: 12px; margin-top: 8px; border: none; border-radius: 8px; font-family: 'Fredoka One'; cursor: pointer; text-transform: uppercase; transition: 0.1s; }
         .btn:hover { filter: brightness(1.2); }
@@ -32,6 +33,7 @@
         #chatInput { background: rgba(0,0,0,0.6); display: none; margin: 0; color: white; border: 1px solid #666; border-radius: 4px; }
         #pauseMenu { display: none; } .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
         .vote-row { display: flex; gap: 10px; justify-content: center; margin-top: 10px; } .lb-row { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #444; } .rank-1 { color: gold; }
+        .close-btn { position: absolute; top: 10px; right: 10px; background: #ff4757; color: white; border: none; width: 30px; height: 30px; border-radius: 50%; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -81,12 +83,12 @@
 
     <div id="voteMenu" class="overlay" style="display:none;">
         <div class="glass" style="width: 400px;">
+            <button class="close-btn" onclick="document.getElementById('voteMenu').style.display='none'">X</button>
             <h2 id="voteTitle">ROUND OVER</h2>
             <div id="leaderboard" style="background:rgba(0,0,0,0.3); border-radius:8px; margin-bottom:15px;"></div>
             <div id="voteSection">
                 <h3>VOTE NEXT</h3>
-                <div class="vote-row"><button class="btn btn-blue" onclick="vote('mode','FFA')">FFA</button><button class="btn btn-blue" onclick="vote('mode','KOTH')">KOTH</button><button class="btn btn-blue" onclick="vote('mode','CTF')">CTF</button></div>
-                <div class="vote-row"><button class="btn btn-blue" onclick="vote('map',0)">ARENA</button><button class="btn btn-blue" onclick="vote('map',1)">MAZE</button></div>
+                <div class="vote-row"><button class="btn btn-blue" onclick="vote('FFA')">FFA</button><button class="btn btn-blue" onclick="vote('KOTH')">KOTH</button><button class="btn btn-blue" onclick="vote('CTF')">CTF</button><button class="btn btn-green" onclick="vote('ZOMBIES')">ZOMBIES</button></div>
             </div>
         </div>
     </div>
@@ -121,7 +123,7 @@
         function val(id) { return document.getElementById(id).value; }
         function auth(t) { socket.emit(t, {user:val('user'), pass:val('pass'), email:val('email'), kit:kit}); }
         function buy(i) { socket.emit('buy', i); }
-        function vote(t,v) { socket.emit('vote', {type:t, val:v}); document.getElementById('voteSection').style.display='none'; }
+        function vote(m) { socket.emit('vote', m); document.getElementById('voteSection').style.display='none'; }
 
         socket.on('authMsg', d => { document.getElementById('msg').innerText = d.m; document.getElementById('msg').style.color = d.s?'#0f0':'#f00'; });
         socket.on('startGame', d => { 
@@ -167,13 +169,22 @@
 
             if(g.phase === 'GAME') {
                 document.getElementById('voteMenu').style.display='none';
-                // FIXED TIMER DISPLAY
                 let secondsRemaining = Math.ceil(g.timer / 60);
                 let mins = Math.floor(secondsRemaining / 60);
                 let secs = (secondsRemaining % 60).toString().padStart(2, '0');
                 
-                let scores = g.mode !== 'FFA' ? ` <span style="color:#ff4757">${g.scores.red}</span> - <span style="color:#4488FF">${g.scores.blue}</span>` : '';
-                document.getElementById('topBar').innerHTML = `${mins}:${secs} | ${g.mode} ${scores}`;
+                let extra = '';
+                if(g.mode === 'ZOMBIES') extra = ` | WAVE ${s.game.wave}`;
+                else if(g.mode !== 'FFA') extra = ` | <span style="color:#ff4757">${g.scores.red}</span> - <span style="color:#4488FF">${g.scores.blue}</span>`;
+                
+                document.getElementById('topBar').innerHTML = `${mins}:${secs} | ${g.mode}${extra}`;
+                
+                // Lives Display for Zombies Mode
+                if(g.mode === 'ZOMBIES' && !me.dead) {
+                    document.getElementById('topBar').innerHTML += ` | ❤️ ${me.lives}`;
+                }
+                if(me.dead) document.getElementById('topBar').innerHTML = "SPECTATING";
+
             } else if (g.phase === 'VOTE') {
                 let secondsRemaining = Math.ceil(g.timer / 60);
                 document.getElementById('topBar').innerHTML = `VOTING... ${secondsRemaining}`;
@@ -192,6 +203,9 @@
             if(shake>0) shake *= 0.9;
 
             rgbTick+=2; const rainbow=`hsl(${rgbTick},100%,50%)`;
+            
+            // Cam Logic: If dead, send mouse logic earlier, but here we just follow position
+            // But if dead, server sends px/py as the ghost camera pos.
             let tx = me.x - canvas.width/2 + 20, ty = me.y - canvas.height/2 + 20;
             cam.x += (tx-cam.x)*0.1; cam.y += (ty-cam.y)*0.1;
 
@@ -205,15 +219,21 @@
 
             for(let id in s.players) {
                 let p = s.players[id];
+                if(p.dead) continue; // Don't draw spectators
+
                 if(p.grapple.active) { ctx.beginPath(); ctx.moveTo(p.x+20,p.y+20); ctx.lineTo(p.grapple.x,p.grapple.y); ctx.strokeStyle='white'; ctx.stroke(); }
                 ctx.fillStyle = (p.isOwner && p.godMode) ? rainbow : p.color;
                 ctx.shadowBlur = 10; ctx.shadowColor = ctx.fillStyle; ctx.fillRect(p.x, p.y, p.w, p.h); ctx.shadowBlur = 0;
+                
+                // Eyes
                 let a = p.angle;
                 ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(p.x+10,p.y+15,6,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(p.x+30,p.y+15,6,0,7); ctx.fill();
                 let ex=Math.cos(a)*3, ey=Math.sin(a)*3;
                 ctx.fillStyle="black"; ctx.beginPath(); ctx.arc(p.x+10+ex,p.y+15+ey,3,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(p.x+30+ex,p.y+15+ey,3,0,7); ctx.fill();
+                
                 if(p.hat==='tophat') { ctx.fillStyle='#111'; ctx.fillRect(p.x,p.y-15,40,10); ctx.fillRect(p.x+5,p.y-40,30,25); }
                 if(p.hat==='crown') { ctx.fillStyle='gold'; ctx.fillText("👑", p.x+12, p.y-10); }
+                
                 ctx.fillStyle="white"; ctx.font="bold 11px Arial"; ctx.fillText(p.username, p.x, p.y-15);
                 ctx.fillStyle="red"; ctx.fillRect(p.x, p.y-10, 40, 5); ctx.fillStyle="#00b894"; ctx.fillRect(p.x, p.y-10, 40*(p.hp/p.maxHp), 5);
             }
@@ -223,10 +243,14 @@
             ctx.restore();
         });
 
+        // Spectator / Active Input Loop
         setInterval(() => {
             if(!myId || isPaused) return;
+            // Calculate absolute world coordinates for mouse, including camera offset
+            let gx = mouse.x + cam.x;
+            let gy = mouse.y + cam.y;
             let ang = Math.atan2(mouse.y-canvas.height/2, mouse.x-canvas.width/2);
-            socket.emit('input', { up: keys.w, down: keys.s, left: keys.a, right: keys.d, dash: keys.shift, shoot: mouse.down, grapple: mouse.right, angle: ang, gx: mouse.x + cam.x, gy: mouse.y + cam.y });
+            socket.emit('input', { up: keys.w, down: keys.s, left: keys.a, right: keys.d, dash: keys.shift, shoot: mouse.down, grapple: mouse.right, angle: ang, gx: gx, gy: gy });
         }, 1000/60);
     </script>
 </body>

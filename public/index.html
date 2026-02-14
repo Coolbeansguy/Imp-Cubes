@@ -11,17 +11,14 @@
         body { margin: 0; background: var(--bg); overflow: hidden; font-family: 'Nunito', sans-serif; color: white; touch-action: none; user-select: none; }
         canvas { display: block; }
 
-        /* UI CONTAINERS */
         .glass { background: rgba(30,35,45,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); text-align: center; position: relative; }
         .overlay { position: absolute; width: 100%; height: 100%; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.9); }
         
-        /* LOGO STYLE */
         .site-logo { width: 140px; height: 140px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 0 25px var(--primary); }
-        
-        /* TYPOGRAPHY & INPUTS */
-        h1, h2 { font-family: 'Fredoka One'; color: var(--primary); margin: 0; margin-bottom: 10px; }
+        h2 { font-family: 'Fredoka One'; color: var(--primary); margin: 0; margin-bottom: 10px; }
         h3 { font-family: 'Fredoka One'; margin: 5px 0; color: #aaa; font-size: 16px; }
-        .btn { width: 100%; padding: 12px; margin-top: 8px; border: none; border-radius: 8px; font-family: 'Fredoka One'; cursor: pointer; text-transform: uppercase; transition: 0.1s; color:white; }
+        
+        .btn { width: 100%; padding: 12px; margin-top: 8px; border: none; border-radius: 8px; font-family: 'Fredoka One'; cursor: pointer; text-transform: uppercase; transition: 0.1s; color: white; }
         .btn:hover { filter: brightness(1.2); }
         .btn-blue { background: var(--primary); } 
         .btn-green { background: #00b894; } 
@@ -29,23 +26,27 @@
         .btn-purple { background: #9b59b6; }
         input, select { width: 100%; padding: 12px; margin-bottom: 10px; background: rgba(0,0,0,0.5); border: 2px solid #444; color: white; border-radius: 8px; box-sizing: border-box; }
         
-        /* LOBBY BROWSER */
+        /* Kit Buttons */
+        .kit-container { display: flex; gap: 5px; margin-bottom: 15px; }
+        .kit-btn { flex: 1; padding: 10px 5px; background: #333; border: 2px solid transparent; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; color: #aaa; font-family: 'Fredoka One'; }
+        .kit-btn.selected { border-color: var(--primary); background: rgba(68,136,255,0.2); color: white; }
+
+        /* Shop Grid */
+        #shopMenu { display: none; }
+        .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .shop-item { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; border: 1px solid #444; cursor: pointer; }
+        .shop-item:hover { border-color: white; }
+        .shop-price { color: var(--accent); font-weight: bold; }
+
         #lobbyMenu { display: none; } 
         #lobbyContainer { display: flex; gap: 20px; text-align: left; }
         #lobbyList { flex: 1.5; background: rgba(0,0,0,0.3); border-radius: 8px; height: 350px; overflow-y: auto; padding: 10px; }
         #createPanel { flex: 1; border-left: 1px solid #444; padding-left: 20px; display: flex; flex-direction: column; }
         .lobby-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; margin-bottom: 5px; border-radius: 6px; border: 1px solid #333; }
-        .lobby-name { font-weight: bold; font-size: 14px; color: white; }
-        .toggle-cont { display: flex; align-items: center; gap: 10px; margin: 10px 0; font-size: 14px; }
-        input[type="checkbox"] { width: auto; margin: 0; }
-
-        /* HUD & GAME UI */
+        
         #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
         #topBar { position: absolute; top: 15px; width: 100%; text-align: center; font-family: 'Fredoka One'; font-size: 24px; text-shadow: 2px 2px 0 #000; }
         #lobbyDisplay { position:absolute; top:50px; left:50%; transform:translateX(-50%); font-size:14px; color:#aaa; font-family:'Fredoka One'; }
-        #controlsInfo { position: absolute; top: 15px; right: 15px; text-align: right; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; font-size: 12px; pointer-events: none; border: 1px solid #444; }
-        .key { background: white; color: black; padding: 1px 4px; border-radius: 3px; font-weight: bold; margin-left: 5px; }
-        
         #statsArea { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); text-align: center; width: 300px; }
         .bar { height: 8px; background: #444; border-radius: 4px; margin-top: 5px; overflow: hidden; }
         .fill { height: 100%; transition: width 0.1s; }
@@ -57,6 +58,7 @@
         #pauseMenu { display: none; } 
         .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
         .logout-link { color: #ff4757; font-size: 12px; cursor: pointer; text-decoration: underline; margin-top: auto; display: inline-block; pointer-events: auto; align-self: center; }
+        .toggle-cont { display: flex; align-items: center; gap: 10px; margin: 10px 0; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -69,6 +71,15 @@
             <input id="pass" type="password" placeholder="Password">
             <input id="email" placeholder="Email (Owner Only)">
             
+            <div style="text-align:left; font-size:12px; color:#aaa; margin-top:10px;">SELECT CLASS</div>
+            <div class="kit-container">
+                <div class="kit-btn selected" onclick="selKit('assault',this)">SOLDIER</div>
+                <div class="kit-btn" onclick="selKit('shotgun',this)">BREACH</div>
+                <div class="kit-btn" onclick="selKit('sniper',this)">RECON</div>
+                <div class="kit-btn" onclick="selKit('tank',this)">HEAVY</div>
+                <div class="kit-btn" onclick="selKit('ninja',this)">NINJA</div>
+            </div>
+
             <button class="btn btn-blue" onclick="auth('login')">LOGIN</button>
             <button class="btn btn-green" onclick="auth('signup')">SIGN UP</button>
             <div id="msg" style="margin-top:10px; font-size:12px;"></div>
@@ -77,7 +88,14 @@
 
     <div id="lobbyMenu" class="overlay" style="z-index: 199;">
         <div class="glass" style="width: 750px;">
-            <h2>SERVER BROWSER</h2>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h2>SERVER BROWSER</h2>
+                <div style="font-size:14px; color:var(--accent);">
+                    CP: <span id="cpDisplay">0</span>
+                    <button class="btn-purple" style="padding:5px 10px; margin-left:10px; font-size:12px;" onclick="document.getElementById('shopMenu').style.display='flex'">ITEM SHOP</button>
+                </div>
+            </div>
+            
             <div id="lobbyContainer">
                 <div id="lobbyList">
                     <div style="color:#888; text-align:center; padding:20px;">Loading servers...</div>
@@ -100,7 +118,7 @@
                         <option value="3">OPEN FIELD</option>
                     </select>
                     <div class="toggle-cont">
-                        <input type="checkbox" id="privateCheck">
+                        <input type="checkbox" id="privateCheck" style="width:auto; margin:0;">
                         <label>Private (Hidden)</label>
                     </div>
                     <button class="btn btn-green" onclick="createLobby()">START SERVER</button>
@@ -113,6 +131,21 @@
                     <div class="logout-link" onclick="logout()">Logout Account</div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div id="shopMenu" class="overlay" style="display:none; z-index:205;">
+        <div class="glass" style="width: 400px;">
+            <h2>ITEM SHOP</h2>
+            <p style="color:#aaa; font-size:12px;">Click to Buy or Equip</p>
+            <div class="shop-grid">
+                <div class="shop-item" onclick="buy('tophat')"><div>🎩 Top Hat</div><div class="shop-price">500 CP</div></div>
+                <div class="shop-item" onclick="buy('halo')"><div>😇 Halo</div><div class="shop-price">2500 CP</div></div>
+                <div class="shop-item" onclick="buy('crown')"><div>👑 Crown</div><div class="shop-price">5000 CP</div></div>
+                <div class="shop-item" onclick="buy('red_glow')"><div>🔴 Red Glow</div><div class="shop-price">1000 CP</div></div>
+            </div>
+            <button class="btn btn-red" onclick="document.getElementById('shopMenu').style.display='none'">CLOSE</button>
+            <div id="shopMsg" style="margin-top:10px; font-weight:bold;"></div>
         </div>
     </div>
 
@@ -163,7 +196,13 @@
         const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
         window.onresize = resize; resize();
 
-        // --- AUTH & SETUP ---
+        // --- KIT & AUTH ---
+        function selKit(k, el) { 
+            kit=k; 
+            document.querySelectorAll('.kit-btn').forEach(b=>b.classList.remove('selected')); 
+            el.classList.add('selected'); 
+        }
+
         window.onload = () => {
             const u = localStorage.getItem('imp_user'), p = localStorage.getItem('imp_pass');
             if(u && p) {
@@ -177,6 +216,8 @@
         function logout() { localStorage.clear(); location.reload(); }
         function val(id) { return document.getElementById(id).value; }
         
+        function buy(item) { socket.emit('buy', item); }
+
         function createLobby() {
             socket.emit('createLobby', { 
                 name: val('newLobbyName'), 
@@ -193,7 +234,14 @@
             if(d.pass) localStorage.setItem('imp_pass', d.pass);
             document.getElementById('mainMenu').style.display = 'none';
             document.getElementById('lobbyMenu').style.display = 'flex';
+            document.getElementById('cpDisplay').innerText = d.money; // Show Money
             socket.emit('requestLobbies');
+        });
+
+        socket.on('shopMsg', d => {
+            let el = document.getElementById('shopMsg');
+            el.innerText = d.m; el.style.color = d.s ? '#0f0' : '#f00';
+            setTimeout(() => el.innerText = "", 2000);
         });
 
         socket.on('authMsg', d => { document.getElementById('msg').innerText = d.m; document.getElementById('msg').style.color = d.s ? '#0f0' : '#f00'; });
@@ -209,35 +257,24 @@
             });
         });
 
-        // --- GAME START & MAP LOAD FIX ---
         socket.on('startGame', d => {
             myId = d.id;
-            currentWalls = d.walls; // FORCE MAP LOAD
+            currentWalls = d.walls; 
             document.getElementById('lobbyMenu').style.display = 'none';
             document.getElementById('hud').style.display = 'block';
             document.getElementById('lobbyDisplay').innerText = "LOBBY: " + d.lobbyId;
             if(d.isOwner) document.getElementById('staffPanel').style.display = 'block';
         });
 
-        socket.on('mapChange', d => { currentWalls = d.walls; }); // Handle map changes mid-game
+        socket.on('mapChange', d => { currentWalls = d.walls; });
+        socket.on('chatMsg', d => { const l=document.createElement('div'); l.innerHTML=`<span style="color:${d.color}">${d.user}:</span> ${d.text}`; document.getElementById('chatMsgs').appendChild(l); });
 
-        socket.on('chatMsg', d => { 
-            const l=document.createElement('div'); 
-            l.innerHTML=`<span style="color:${d.color}">${d.user}:</span> ${d.text}`; 
-            document.getElementById('chatMsgs').appendChild(l); 
-        });
-
-        // --- INPUT ---
         const keys={w:0,a:0,s:0,d:0,shift:0}, mouse={x:0,y:0,down:0};
         function togglePause() { isPaused = !isPaused; document.getElementById('pauseMenu').style.display = isPaused ? 'flex' : 'none'; }
 
         window.onkeydown=e=>{
             if(document.activeElement.id==='chatInput'){
-                if(e.code==='Enter'){ 
-                    socket.emit('chat', document.getElementById('chatInput').value); 
-                    document.getElementById('chatInput').value=''; 
-                    document.getElementById('chatInput').style.display='none'; 
-                } return;
+                if(e.code==='Enter'){ socket.emit('chat', document.getElementById('chatInput').value); document.getElementById('chatInput').value=''; document.getElementById('chatInput').style.display='none'; } return;
             }
             if(e.code==='Enter'){ document.getElementById('chatInput').style.display='block'; document.getElementById('chatInput').focus(); }
             if(e.code==='KeyP') togglePause();
@@ -248,43 +285,35 @@
         window.onmousedown=e=>{ if(e.button===0)mouse.down=1; }; 
         window.onmouseup=e=>{ if(e.button===0)mouse.down=0; };
 
-        // --- VISUALS ---
-        function createExplosion(x, y, color) { 
-            for(let i=0; i<6; i++) particles.push({x, y, vx:(Math.random()-0.5)*10, vy:(Math.random()-0.5)*10, life:15, color, size:3}); 
-        }
+        function createExplosion(x, y, color) { for(let i=0; i<6; i++) particles.push({x, y, vx:(Math.random()-0.5)*10, vy:(Math.random()-0.5)*10, life:15, color, size:3}); }
 
         socket.on('state', s => {
             if(!myId || isPaused) return;
             const me = s.players[myId]; if(!me) return;
             const g = s.game;
 
-            // Camera LERP
             cam.x += (me.x - canvas.width/2 - cam.x)*0.1; 
             cam.y += (me.y - canvas.height/2 - cam.y)*0.1;
 
             ctx.fillStyle="#0a0a10"; ctx.fillRect(0,0,canvas.width,canvas.height);
             ctx.save(); ctx.translate(-cam.x, -cam.y);
 
-            // Draw KOTH Zone
             if(g.mode==='KOTH' && g.hill){
                 ctx.fillStyle="rgba(68,136,255,0.15)"; ctx.fillRect(g.hill.x, g.hill.y, g.hill.w, g.hill.h);
-                ctx.strokeStyle="white"; ctx.lineWidth=2; ctx.setLineDash([10,5]); 
-                ctx.strokeRect(g.hill.x, g.hill.y, g.hill.w, g.hill.h); ctx.setLineDash([]);
+                ctx.strokeStyle="white"; ctx.lineWidth=2; ctx.setLineDash([10,5]); ctx.strokeRect(g.hill.x, g.hill.y, g.hill.w, g.hill.h); ctx.setLineDash([]);
             }
+            
+            ctx.fillStyle="#2d3436"; currentWalls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
 
-            // Draw Walls
-            ctx.fillStyle="#2d3436"; 
-            currentWalls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
-
-            // Draw Players
             for(let id in s.players){
                 let p = s.players[id]; if(p.dead) continue;
-                
-                // Body
-                ctx.fillStyle = p.color; 
-                ctx.fillRect(p.x, p.y, p.w, p.h);
+                ctx.fillStyle=p.color; ctx.fillRect(p.x, p.y, p.w, p.h);
 
-                // Imp Face (Eyes)
+                // HAT DRAWING
+                if(p.hat === 'tophat') { ctx.fillStyle='#111'; ctx.fillRect(p.x,p.y-15,40,10); ctx.fillRect(p.x+5,p.y-40,30,25); }
+                if(p.hat === 'crown') { ctx.fillStyle='gold'; ctx.fillText('👑', p.x+12, p.y-10); }
+                if(p.hat === 'halo') { ctx.strokeStyle='gold'; ctx.lineWidth=2; ctx.beginPath(); ctx.ellipse(p.x+20, p.y-15, 15, 5, 0, 0, Math.PI*2); ctx.stroke(); }
+
                 let a = p.angle;
                 let ex = Math.cos(a)*4, ey = Math.sin(a)*4;
                 ctx.fillStyle = "white"; 
@@ -294,19 +323,16 @@
                 ctx.beginPath(); ctx.arc(p.x+10+ex, p.y+15+ey, 3, 0, Math.PI*2); ctx.fill();
                 ctx.beginPath(); ctx.arc(p.x+30+ex, p.y+15+ey, 3, 0, Math.PI*2); ctx.fill();
 
-                // Name & HP
                 ctx.fillStyle = "white"; ctx.font = "bold 12px Arial"; ctx.fillText(p.username, p.x, p.y-10);
                 ctx.fillStyle = "#ff4757"; ctx.fillRect(p.x, p.y-5, 40, 4);
                 ctx.fillStyle = "#00b894"; ctx.fillRect(p.x, p.y-5, 40*(p.hp/p.maxHp), 4);
             }
 
-            // Bullets
             s.bullets.forEach(b => { 
                 ctx.fillStyle = b.color; ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, Math.PI*2); ctx.fill();
                 createExplosion(b.x, b.y, b.color);
             });
 
-            // Particles
             particles.forEach((p,i)=>{
                 p.x+=p.vx; p.y+=p.vy; p.life--; p.size*=0.9;
                 ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fill();
@@ -315,7 +341,6 @@
 
             ctx.restore();
 
-            // Stats Update
             let mins = Math.floor(g.timer/3600), secs = Math.ceil((g.timer%3600)/60).toString().padStart(2,'0');
             document.getElementById('topBar').innerText = `${mins}:${secs} | ${g.mode}`;
             document.getElementById('ammoText').innerText = `${me.ammo}/${me.maxAmmo}`;
@@ -323,7 +348,6 @@
             document.getElementById('xpBar').style.width = (me.xp%100)+"%";
         });
 
-        // Input Loop
         setInterval(() => {
             if(!myId || isPaused) return;
             let ang = Math.atan2(mouse.y - canvas.height/2, mouse.x - canvas.width/2);

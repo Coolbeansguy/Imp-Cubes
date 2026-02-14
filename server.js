@@ -10,7 +10,7 @@ app.use(express.static('public'));
 const DB_FILE = 'database.json';
 const MAPS = [
     { name: 'Arena', walls: [{x:300,y:300,w:100,h:400}, {x:800,y:600,w:400,h:100}, {x:1200,y:200,w:200,h:200}, {x:0,y:0,w:50,h:1500}, {x:1950,y:0,w:50,h:1500}, {x:0,y:0,w:2000,h:50}, {x:0,y:1450,w:2000,h:50}] },
-    { name: 'Maze', walls: [{x:400,y:0,w:50,h:1000}, {x:800,y:500,w:50,h:1000}, {x:1200,y:0,w:50,h:1000}, {x:0,y:0,w:2000,h:50}, {x:0,y:1450,w:2000,h:50}] },
+    { name: 'Maze', walls: [{x:400,y:0,w:50,h:1000}, {x:800,y:500,w:50,h:1000}, {x:1200,y:0,w:50,h:1000}, {x:0,y:0,w:50,h:1500}, {x:1950,y:0,w:50,h:1500}, {x:0,y:0,w:2000,h:50}, {x:0,y:1450,w:2000,h:50}] },
     { name: 'Towers', walls: [{x:400,y:400,w:200,h:200}, {x:1400,y:400,w:200,h:200}, {x:400,y:900,w:200,h:200}, {x:1400,y:900,w:200,h:200}, {x:900,y:650,w:200,h:200}, {x:0,y:0,w:50,h:1500}, {x:1950,y:0,w:50,h:1500}, {x:0,y:0,w:2000,h:50}, {x:0,y:1450,w:2000,h:50}] },
     { name: 'Open Field', walls: [{x:0,y:0,w:50,h:1500}, {x:1950,y:0,w:50,h:1500}, {x:0,y:0,w:2000,h:50}, {x:0,y:1450,w:2000,h:50}] }
 ];
@@ -30,8 +30,9 @@ const SHOP_ITEMS = {
     'red_glow': { name: 'Red Glow', price: 1000, type: 'color', value: '#ff0000' }
 };
 
-const GOD_KIT = { name:'ADMIN', hp:5000, speed:1.5, weapon:{damage:5000,speed:40,cooldown:5,ammo:999,reload:0,range:500}};
+const GOD_KIT = { name:'ADMIN', hp:99999, speed:1.5, weapon:{damage:99999,speed:40,cooldown:2,ammo:999,reload:0,range:1000}};
 
+// --- DATABASE ---
 let userDB = {};
 if(fs.existsSync(DB_FILE)) try { userDB=JSON.parse(fs.readFileSync(DB_FILE)); } catch(e){}
 function saveDB(){ fs.writeFileSync(DB_FILE,JSON.stringify(userDB)); }
@@ -48,13 +49,12 @@ class Lobby {
         this.isPublic = settings.isPublic;
         this.players = {};
         this.bullets = [];
-        this.mods = [hostId];
+        this.mods = [hostId]; // Host is local mod
         this.gameState = {
             phase: 'GAME', timer: 180 * 60, mode: 'FFA', mapIndex: 0,
             walls: MAPS[0].walls, scores: { red: 0, blue: 0 },
             flags: [], hill: null, wave: 1, zombiesLeft: 0, juggernautId: null
         };
-        
         let initialMode = settings.mode || 'FFA';
         let initialMap = parseInt(settings.map) || 0;
         this.resetGame(initialMode, initialMap);
@@ -164,33 +164,194 @@ io.on('connection', (socket) => {
 
     socket.on('login', (d) => {
         let acc = userDB[d.user];
-        if(!acc || acc.pass !== d.pass) return socket.emit('authMsg',{s:false,m:"Fail"});
+        if(!acc) return socket.emit('authMsg',{s:false,m:"User not found"});
+        if(acc.banned) return socket.emit('authMsg',{s:false,m:"ACCOUNT BANNED"});
+        if(acc.pass !== d.pass) return socket.emit('authMsg',{s:false,m:"Wrong Password"});
         finishAuth(socket, d, acc, true);
     });
 
     socket.on('guest', (d) => { finishAuth(socket, d, { money:0, xp:0, items:[] }, false); });
     socket.on('signup', (d) => {
         if(userDB[d.user]) return socket.emit('authMsg',{s:false,m:"Taken"});
-        userDB[d.user] = { pass:d.pass, email:d.email, money:0, xp:0, items:[] };
+        userDB[d.user] = { pass:d.pass, email:d.email, money:0, xp:0, items:[], banned: false, isStaff: false };
         saveDB(); socket.emit('authMsg',{s:true,m:"Created"});
     });
 
     function finishAuth(s, d, acc, isLogin) {
         let isOwner = acc.email === 'raidenrmarks12@gmail.com';
+        let isStaff = acc.isStaff === true; // Check DB for Global Staff status
+
         currentUser = {
             id: s.id,
             username: isLogin ? d.user : "Guest"+Math.floor(Math.random()*9999),
             pass: d.pass, 
-            selectedKit: KITS.assault, // Default
+            selectedKit: KITS.assault,
             money: acc.money, xp: acc.xp, level: getLevel(acc.xp), 
             items: acc.items || [], 
             equippedHat: acc.equippedHat || 'none',
-            isOwner: isOwner, godMode: isOwner, isGuest: !isLogin
+            isOwner: isOwner, 
+            isStaff: isStaff,
+            godMode: isOwner, 
+            isGuest: !isLogin
         };
-        s.emit('authSuccess', { isOwner, user: currentUser.username, pass: currentUser.pass, money: currentUser.money, items: currentUser.items, equippedHat: currentUser.equippedHat });
+        s.emit('authSuccess', { isOwner, isStaff, user: currentUser.username, pass: currentUser.pass, money: currentUser.money, items: currentUser.items, equippedHat: currentUser.equippedHat });
         sendLobbyList(s);
     }
 
+    // --- CHAT COMMANDS ENGINE ---
+    socket.on('chat', (m) => {
+        let lid = socketLobbyMap[socket.id]; if(!lid || !lobbies[lid]) return;
+        let lobby = lobbies[lid];
+        let p = lobby.players[socket.id];
+        if(!p) return;
+
+        let isGlobalOwner = p.isOwner;
+        let isGlobalStaff = p.isStaff || isGlobalOwner; // Staff includes Owner
+        let isLobbyHost = (lobby.hostId === socket.id);
+        let isLobbyMod = lobby.mods.includes(socket.id);
+        
+        let hasAuth = isGlobalStaff || isLobbyHost || isLobbyMod;
+
+        // Command Parser
+        if(m.startsWith('/')) {
+            let args = m.split(' ');
+            let cmd = args[0].toLowerCase();
+            let arg1 = args[1];
+            let arg2 = args[2];
+
+            // --- OWNER COMMANDS (Global) ---
+            if(cmd === '/makestaff' && isGlobalOwner) {
+                let targetName = arg1;
+                if(userDB[targetName]) {
+                    userDB[targetName].isStaff = true;
+                    saveDB();
+                    io.to(lid).emit('chatMsg', {user:'[SYSTEM]', text:`${targetName} promoted to Global Staff!`, color:'gold'});
+                } else { socket.emit('chatMsg', {user:'[ERR]', text:'User not found in DB', color:'red'}); }
+            }
+            else if(cmd === '/removestaff' && isGlobalOwner) {
+                let targetName = arg1;
+                if(userDB[targetName]) {
+                    userDB[targetName].isStaff = false;
+                    saveDB();
+                    io.to(lid).emit('chatMsg', {user:'[SYSTEM]', text:`${targetName} demoted from Staff.`, color:'orange'});
+                }
+            }
+            else if(cmd === '/givecp' && isGlobalOwner) {
+                let amount = parseInt(arg1) || 1000;
+                let targetName = arg2 || p.username;
+                let t = Object.values(lobby.players).find(u => u.username === targetName);
+                if(t) {
+                    t.money += amount;
+                    if(t.id === socket.id) syncData(t); 
+                    io.to(t.id).emit('shopUpdate', { money: t.money, items: t.items });
+                    io.to(lid).emit('chatMsg', {user:'[SYSTEM]', text:`Gave ${amount} CP to ${t.username}`, color:'gold'});
+                }
+            }
+
+            // --- STAFF COMMANDS (Global) ---
+            else if(cmd === '/ban' && isGlobalStaff) {
+                let tId = Object.keys(lobby.players).find(k => lobby.players[k].username === arg1);
+                if(tId) {
+                    if(lobby.players[tId].isOwner) return socket.emit('chatMsg', {user:'[ERR]', text:'Cannot ban Owner!', color:'red'});
+                    if(userDB[arg1]) { userDB[arg1].banned = true; saveDB(); }
+                    io.to(tId).emit('authMsg', {s:false, m:"YOU ARE BANNED"});
+                    io.to(tId).emit('disconnect');
+                    delete lobby.players[tId];
+                    io.to(lid).emit('chatMsg', {user:'[SYSTEM]', text:`${arg1} was BANNED by Staff.`, color:'red'});
+                } else if(userDB[arg1]) {
+                    userDB[arg1].banned = true; saveDB();
+                    io.to(lid).emit('chatMsg', {user:'[SYSTEM]', text:`${arg1} was BANNED offline.`, color:'red'});
+                }
+            }
+            else if(cmd === '/unban' && isGlobalStaff) {
+                if(userDB[arg1]) { userDB[arg1].banned = false; saveDB(); io.to(lid).emit('chatMsg', {user:'[SYSTEM]', text:`${arg1} unbanned.`, color:'lime'}); }
+            }
+
+            // --- LOBBY COMMANDS (Host & Mods) ---
+            else if(cmd === '/kick' && hasAuth) {
+                let tId = Object.keys(lobby.players).find(k => lobby.players[k].username === arg1);
+                if(tId) {
+                    let target = lobby.players[tId];
+                    // Hierarchy Protection: Mod cannot kick Host/Staff. Host cannot kick Staff.
+                    if(target.isOwner || target.isStaff) return socket.emit('chatMsg', {user:'[ERR]', text:'Cannot kick Global Staff!', color:'red'});
+                    if(lobby.hostId === tId && !isGlobalStaff) return socket.emit('chatMsg', {user:'[ERR]', text:'Cannot kick Host!', color:'red'});
+                    
+                    io.to(tId).emit('disconnect');
+                    delete lobby.players[tId];
+                    io.to(lid).emit('chatMsg', {user:'[SYSTEM]', text:`${target.username} was kicked.`, color:'orange'});
+                }
+            }
+            else if(cmd === '/mod' && (isGlobalStaff || isLobbyHost)) {
+                let t = Object.values(lobby.players).find(u => u.username === arg1);
+                if(t && !lobby.mods.includes(t.id)) { 
+                    lobby.mods.push(t.id); 
+                    io.to(lid).emit('chatMsg', {user:'[SYSTEM]', text:`${t.username} is now Lobby Staff`, color:'cyan'}); 
+                }
+            }
+            else if(cmd === '/unmod' && (isGlobalStaff || isLobbyHost)) {
+                let tId = Object.keys(lobby.players).find(k => lobby.players[k].username === arg1);
+                if(tId) { 
+                    lobby.mods = lobby.mods.filter(m => m !== tId); 
+                    io.to(lid).emit('chatMsg', {user:'[SYSTEM]', text:`${arg1} removed from Lobby Staff.`, color:'orange'}); 
+                }
+            }
+            else if(cmd === '/map' && hasAuth) {
+                let idx = 0;
+                let name = arg1?.toLowerCase();
+                if(name === 'maze') idx=1; else if(name === 'towers') idx=2; else if(name === 'open') idx=3;
+                lobby.resetGame(lobby.gameState.mode, idx);
+                io.to(lid).emit('chatMsg', {user:'[SYSTEM]', text:`Map changed to ${MAPS[idx].name}`, color:'cyan'});
+            }
+            else if(cmd === '/mode' && hasAuth) {
+                let m = arg1?.toUpperCase();
+                if(['FFA','KOTH','TDM','ZOMBIES','JUGGERNAUT'].includes(m)) {
+                    lobby.resetGame(m, lobby.gameState.mapIndex);
+                    io.to(lid).emit('chatMsg', {user:'[SYSTEM]', text:`Mode set to ${m}`, color:'cyan'});
+                }
+            }
+            else if(cmd === '/tp' && hasAuth) {
+                let t = Object.values(lobby.players).find(u => u.username === arg1);
+                if(t) { p.x = t.x; p.y = t.y; socket.emit('chatMsg', {user:'[SYS]', text:`Teleported.`, color:'lime'}); }
+            }
+            else if(cmd === '/god' && hasAuth) {
+                p.godMode = !p.godMode;
+                p.color = p.godMode ? '#FFD700' : '#4488FF';
+                socket.emit('chatMsg', {user:'[SYS]', text:`God Mode: ${p.godMode}`, color:'gold'});
+            }
+            else if(cmd === '/help') {
+                socket.emit('chatMsg', {user:'[HELP]', text:'Owner: /makestaff. Staff: /ban. Host/LobbyStaff: /kick, /map, /mode.', color:'gold'});
+            }
+            
+            return; 
+        }
+
+        // --- CHAT TAG LOGIC ---
+        if(p.muted) return;
+        
+        let tag = "";
+        let color = "white";
+        
+        if (p.isOwner) { 
+            tag = "[OWNER] "; color = "#FFD700"; // Gold
+        } else if (p.isStaff) {
+            tag = "[STAFF] "; color = "cyan"; // Cyan
+        } else if (lobby.hostId === socket.id) { 
+            tag = "[HOST] "; color = "#ff4757"; // Red
+        } else if (lobby.mods.includes(socket.id)) { 
+            tag = "[LOBBY STAFF] "; color = "#00b894"; // Green
+        } else { 
+            tag = `[Lvl ${p.level}] `; 
+        }
+
+        io.to(lid).emit('chatMsg', { 
+            user: `${tag}${p.username}`, 
+            text: m.substring(0, 100), 
+            color: p.color,
+            nameColor: color 
+        });
+    });
+
+    // --- OTHER SOCKET EVENTS (Buy, Equip, etc) ---
     socket.on('buy', (itemId) => {
         if(!currentUser || !SHOP_ITEMS[itemId]) return;
         let item = SHOP_ITEMS[itemId];
@@ -246,29 +407,21 @@ io.on('connection', (socket) => {
             kit: KITS.assault, hp:100, maxHp:100, speed:1,
             color: currentUser.isOwner?'#FFD700':'#4488FF',
             ammo:0, maxAmmo:0, reloading:false, reloadTimer:0, shootTimer:0, dashTimer:0,
-            grapple:{active:false}, score:0, type:'player', 
-            dead: true, // START DEAD
-            lives:3,
-            hat: currentUser.equippedHat 
+            grapple:{active:false}, score:0, type:'player', dead:true, lives:3, hat: currentUser.equippedHat 
         };
         
         lobby.players[s.id] = p;
         lobby.assignTeam(p, Object.keys(lobby.players).length);
-        // DO NOT RESPAWN YET - Wait for client request
-
-        s.emit('startGame', { id: s.id, isOwner: currentUser.isOwner, walls: lobby.gameState.walls, lobbyId: lobbyId, mode: lobby.gameState.mode });
+        s.emit('startGame', { id: s.id, isOwner: currentUser.isOwner, isStaff: currentUser.isStaff, walls: lobby.gameState.walls, lobbyId: lobbyId, mode: lobby.gameState.mode, isHost: lobby.hostId === s.id });
         io.to(lobbyId).emit('chatMsg', { user:'[SYSTEM]', text:`${p.username} joined!`, color:'lime' });
         io.emit('lobbyUpdate');
     }
 
-    // --- REQUEST SPAWN (NEW) ---
     socket.on('requestSpawn', (kitName) => {
         let lid = socketLobbyMap[socket.id]; if(!lid || !lobbies[lid]) return;
         let lobby = lobbies[lid];
         let p = lobby.players[socket.id];
-        
         if(p && p.dead) {
-            // Apply Kit
             if(KITS[kitName]) p.selectedKit = KITS[kitName];
             lobby.respawn(p);
         }
@@ -295,19 +448,6 @@ io.on('connection', (socket) => {
         if(d.grapple && !p.grapple.active) { p.grapple.active=true; p.grapple.x=d.gx; p.grapple.y=d.gy; } else if(!d.grapple) p.grapple.active=false;
     });
 
-    socket.on('chat', (m) => {
-        let lid = socketLobbyMap[socket.id]; if(!lid || !lobbies[lid]) return;
-        let lobby = lobbies[lid]; let p = lobby.players[socket.id]; if(!p) return;
-        if(m.startsWith('/')) {
-            let args = m.split(' '); let cmd = args[0].toLowerCase();
-            let isMod = lobby.mods.includes(socket.id) || p.isOwner;
-            if(cmd === '/mod' && isMod) { let t = Object.values(lobby.players).find(u => u.username === args[1]); if(t) { lobby.mods.push(t.id); io.to(lid).emit('chatMsg', {user:'[SYSTEM]', text:`${t.username} is Mod`, color:'cyan'}); } }
-            // ...
-            return;
-        }
-        io.to(lid).emit('chatMsg', { user:`[Lvl ${p.level}] ${p.username}`, text:m.substring(0,60), color:p.color });
-    });
-
     socket.on('disconnect', () => {
         let lid = socketLobbyMap[socket.id];
         if(lid && lobbies[lid]) {
@@ -319,12 +459,17 @@ io.on('connection', (socket) => {
     socket.on('syncReq', () => { if(currentUser) syncData(currentUser); });
     socket.on('staffAction', (data) => {
         let lid = socketLobbyMap[socket.id]; if(!lid||!lobbies[lid]) return;
-        let p = lobbies[lid].players[socket.id];
-        if(p && (p.isOwner || lobbies[lid].mods.includes(socket.id))) {
-            if(data.type==='toggleGod' && p.isOwner) { p.godMode=!p.godMode; p.color=p.godMode?'#FFD700':'#4488FF'; lobbies[lid].respawn(p); }
+        let lobby = lobbies[lid];
+        let p = lobby.players[socket.id];
+        
+        let hasAuth = p.isOwner || p.isStaff || lobby.hostId === socket.id || lobby.mods.includes(socket.id);
+        
+        if(hasAuth) {
+            if(data.type==='toggleGod') { p.godMode=!p.godMode; p.color=p.godMode?'#FFD700':'#4488FF'; lobbies[lid].respawn(p); }
             if(data.type==='spawnDummy') { let id='d_'+Math.random(); let s=lobbies[lid].getSpawn('FFA'); lobbies[lid].players[id]={id:id,username:"Dummy",isDummy:true,x:s.x,y:s.y,vx:0,vy:0,w:40,h:40,hp:100,maxHp:100,color:'#888',grapple:{active:false},team:'FFA',score:0,level:0,hat:'none',type:'player',angle:0}; }
             if(data.type==='clearDummies') { for(let id in lobbies[lid].players) if(lobbies[lid].players[id].isDummy) delete lobbies[lid].players[id]; }
-            if(data.type==='giveCP' && p.isOwner) { currentUser.money += 1000; syncData(currentUser); socket.emit('authSuccess', {isOwner:true, user:p.username, pass:null, money:currentUser.money, items:currentUser.items, equippedHat:currentUser.equippedHat}); }
+            if(data.type==='skipRound') { lobby.gameState.timer = 1; io.to(lid).emit('chatMsg', { user: '[SYSTEM]', text: 'Round Skipped', color: 'gold' }); }
+            if(data.type==='giveCP' && p.isOwner) { currentUser.money += 1000; syncData(currentUser); socket.emit('authSuccess', {isOwner:true, isStaff:true, user:p.username, pass:null, money:currentUser.money, items:currentUser.items, equippedHat:currentUser.equippedHat}); }
         }
     });
 });
@@ -385,10 +530,10 @@ function handleDeath(lobby, victim, killer) {
         if(lobby.gameState.mode === 'ZOMBIES') { 
             victim.lives--; 
             if(victim.lives <= 0) { victim.dead = true; io.to(lobby.id).emit('chatMsg', { user: '[SYSTEM]', text: `${victim.username} is out!`, color: 'red' }); } 
-            else victim.dead = true; // Wait for respawn click
+            else victim.dead = true; 
         } 
         else {
-            victim.dead = true; // Just set dead, let client request spawn
+            victim.dead = true; 
         }
     }
 }

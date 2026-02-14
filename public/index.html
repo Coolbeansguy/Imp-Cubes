@@ -12,49 +12,35 @@
 
         .glass { background: rgba(30,35,45,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); text-align: center; }
         .overlay { position: absolute; width: 100%; height: 100%; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.9); }
-        
         h1, h2 { font-family: 'Fredoka One'; color: var(--primary); margin-top: 0; }
         .btn { width: 100%; padding: 12px; margin-top: 8px; border: none; border-radius: 8px; font-family: 'Fredoka One'; cursor: pointer; text-transform: uppercase; transition: 0.1s; }
         .btn:hover { filter: brightness(1.2); }
-        .btn-blue { background: var(--primary); color: white; }
-        .btn-green { background: #00b894; color: white; }
-        .btn-red { background: #ff4757; color: white; }
-        .btn-purple { background: #9b59b6; color: white; }
-        
+        .btn-blue { background: var(--primary); color: white; } .btn-green { background: #00b894; color: white; } .btn-red { background: #ff4757; color: white; } .btn-purple { background: #9b59b6; color: white; }
         input { width: 100%; padding: 12px; margin-bottom: 10px; background: rgba(0,0,0,0.5); border: 2px solid #444; color: white; border-radius: 8px; box-sizing: border-box; }
-
+        
         .kit-container { display: flex; gap: 5px; margin-bottom: 15px; }
         .kit-btn { flex: 1; padding: 10px 5px; background: #333; border: 2px solid transparent; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
         .kit-btn.selected { border-color: var(--primary); background: rgba(68,136,255,0.2); color: white; }
 
         #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
-        #topBar { position: absolute; top: 15px; width: 100%; text-align: center; font-family: 'Fredoka One'; font-size: 20px; text-shadow: 2px 2px 0 #000; }
+        #topBar { position: absolute; top: 15px; width: 100%; text-align: center; font-family: 'Fredoka One'; font-size: 24px; text-shadow: 2px 2px 0 #000; }
         #controlsInfo { position: absolute; top: 15px; right: 15px; text-align: right; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; font-size: 12px; pointer-events: none; border: 1px solid #444; }
         .key { background: white; color: black; padding: 1px 4px; border-radius: 3px; font-weight: bold; margin-left: 5px; }
-
         #statsArea { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); text-align: center; width: 300px; }
         .bar { height: 8px; background: #444; border-radius: 4px; margin-top: 5px; overflow: hidden; }
         .fill { height: 100%; transition: width 0.1s; }
-        
         #chatBox { position: absolute; bottom: 20px; left: 20px; width: 300px; pointer-events: auto; }
         #chatMsgs { height: 150px; overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-end; mask-image: linear-gradient(to top, black 80%, transparent 100%); text-shadow: 1px 1px 2px black; font-weight: bold; font-size: 13px; }
         #chatInput { background: rgba(0,0,0,0.6); display: none; margin: 0; color: white; border: 1px solid #666; border-radius: 4px; }
-
-        #pauseMenu { display: none; }
-        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-        .vote-row { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
-        .lb-row { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #444; }
-        .rank-1 { color: gold; }
+        #pauseMenu { display: none; } .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .vote-row { display: flex; gap: 10px; justify-content: center; margin-top: 10px; } .lb-row { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #444; } .rank-1 { color: gold; }
     </style>
 </head>
 <body>
-
     <div id="mainMenu" class="overlay" style="z-index: 200;">
         <div class="glass" style="width: 350px;">
             <h1>IMP CUBES</h1>
-            <input id="user" placeholder="Username">
-            <input id="email" placeholder="Email (Owner Only)">
-            <input id="pass" type="password" placeholder="Password">
+            <input id="user" placeholder="Username"><input id="email" placeholder="Email (Owner Only)"><input id="pass" type="password" placeholder="Password">
             <div style="text-align:left; font-size:12px; color:#aaa; margin-top:10px;">CLASS</div>
             <div class="kit-container">
                 <div class="kit-btn selected" onclick="selKit('shotgun',this)">BREACH</div>
@@ -72,10 +58,7 @@
     <div id="pauseMenu" class="overlay">
         <div class="glass" style="width: 350px;">
             <h2>PAUSED</h2>
-            <div class="menu-grid">
-                <button class="btn btn-blue" onclick="togglePause()">RESUME</button>
-                <button class="btn btn-red" onclick="location.reload()">LEAVE GAME</button>
-            </div>
+            <div class="menu-grid"><button class="btn btn-blue" onclick="togglePause()">RESUME</button><button class="btn btn-red" onclick="location.reload()">LEAVE GAME</button></div>
             <div id="staffPanel" style="display:none; border-top:1px solid #555; margin-top:20px; padding-top:10px;">
                 <h3 style="color:var(--accent)">STAFF PANEL</h3>
                 <div class="menu-grid">
@@ -111,14 +94,9 @@
     </div>
 
     <div id="hud">
-        <div id="topBar">WARMUP</div>
+        <div id="topBar"></div>
         <div id="controlsInfo">
-            <div>Move <span class="key">WASD</span></div>
-            <div>Dash <span class="key">SHIFT</span></div>
-            <div>Shoot <span class="key">L-CLICK</span></div>
-            <div>Grapple <span class="key">R-CLICK</span></div>
-            <div>Chat <span class="key">ENTER</span></div>
-            <div>Menu <span class="key">P</span></div>
+            <div>Move <span class="key">WASD</span></div><div>Dash <span class="key">SHIFT</span></div><div>Shoot <span class="key">L-CLICK</span></div><div>Grapple <span class="key">R-CLICK</span></div><div>Chat <span class="key">ENTER</span></div><div>Menu <span class="key">P</span></div>
         </div>
         <div id="statsArea">
             <div id="ammoText" style="font-family:'Fredoka One'; font-size:24px;">30 / 30</div>
@@ -155,15 +133,9 @@
             if(d.isOwner) document.getElementById('staffPanel').style.display='block';
         });
 
-        socket.on('chatMsg', d => {
-            if(!myId) return; 
-            const l = document.createElement('div');
-            l.innerHTML = `<span style="color:${d.color}">${d.user}:</span> ${d.text}`;
-            document.getElementById('chatMsgs').appendChild(l);
-        });
-
+        socket.on('chatMsg', d => { if(!myId) return; const l = document.createElement('div'); l.innerHTML = `<span style="color:${d.color}">${d.user}:</span> ${d.text}`; document.getElementById('chatMsgs').appendChild(l); });
         socket.on('gameover', d => {
-            if(!myId) return; 
+            if(!myId) return;
             document.getElementById('voteMenu').style.display='flex';
             document.getElementById('voteSection').style.display='block';
             document.getElementById('voteTitle').innerText = "ROUND OVER";
@@ -195,10 +167,18 @@
             const me = s.players[myId]; if(!me) return;
             const g = s.game;
 
-            if(g.phase === 'GAME') document.getElementById('voteMenu').style.display='none';
-            let time = `${Math.floor(g.timer/60)}:${(g.timer%60).toString().padStart(2,'0')}`;
-            let scores = g.mode !== 'FFA' ? ` <span style="color:#ff4757">${g.scores.red}</span> - <span style="color:#4488FF">${g.scores.blue}</span>` : '';
-            document.getElementById('topBar').innerHTML = `${time} | ${g.mode} ${scores}`;
+            if(g.phase === 'GAME') {
+                document.getElementById('voteMenu').style.display='none';
+                let mins = Math.floor(g.timer / 60);
+                let secs = (g.timer % 60).toString().padStart(2, '0');
+                let scores = g.mode !== 'FFA' ? ` <span style="color:#ff4757">${g.scores.red}</span> - <span style="color:#4488FF">${g.scores.blue}</span>` : '';
+                document.getElementById('topBar').innerHTML = `${mins}:${secs} | ${g.mode} ${scores}`;
+            } else if (g.phase === 'VOTE') {
+                document.getElementById('topBar').innerHTML = "VOTING...";
+            } else {
+                document.getElementById('topBar').innerHTML = "WARMUP";
+            }
+
             document.getElementById('ammoText').innerText = me.reloading ? "RELOADING" : `${me.ammo}/${me.maxAmmo}`;
             document.getElementById('reloadBar').style.width = me.reloading ? `${(me.reloadTimer/me.kit.weapon.reload)*100}%` : '0%';
             document.getElementById('hpBar').style.width = `${(me.hp/me.maxHp)*100}%`;

@@ -1,66 +1,76 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Imp Cubes</title>
+    <title>Imp Cubes - CP Update</title>
     <style>
         body { margin: 0; background: #111; overflow: hidden; font-family: 'Segoe UI', sans-serif; color: white; }
+        canvas { display: block; position: absolute; top: 0; left: 0; }
+
+        /* MENU STYLES */
+        #menu { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .box { background: #222; padding: 20px; border: 2px solid #4488FF; width: 300px; text-align: center; border-radius: 10px; }
+        input, button { width: 100%; padding: 10px; margin: 5px 0; background: #333; color: white; border: 1px solid #555; border-radius: 5px; }
+        button { cursor: pointer; background: #4488FF; font-weight: bold; }
+        button:hover { background: #6699FF; }
+
+        /* HUD STYLES */
+        #hud { position: absolute; top: 10px; left: 10px; z-index: 5; display: none; pointer-events: none; }
         
-        /* THE GAME CANVAS */
-        canvas { display: block; position: absolute; top: 0; left: 0; z-index: 1; }
-
-        /* THE MENU OVERLAY */
-        #menu {
-            position: absolute; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            z-index: 10;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-        }
-
-        .box {
-            background: #222; padding: 30px; border-radius: 12px;
-            text-align: center; border: 2px solid #4488FF;
-            box-shadow: 0 0 20px rgba(68, 136, 255, 0.3);
-            width: 300px;
-        }
-
-        h1 { margin: 0 0 20px 0; color: #4488FF; letter-spacing: 2px; }
+        /* SHOP BUTTON (Bottom Left) */
+        #shopBtn { position: absolute; bottom: 20px; left: 20px; z-index: 20; display: none; }
+        #shopBtn button { background: linear-gradient(45deg, #FFD700, #FFA500); color: black; border: 2px solid white; box-shadow: 0 0 10px gold; width: auto; padding: 10px 20px; }
         
-        input, select, button {
-            width: 100%; padding: 10px; margin-bottom: 15px;
-            background: #333; border: 1px solid #555; color: white;
-            border-radius: 5px; font-size: 16px; box-sizing: border-box;
+        /* SHOP MENU (Centered) */
+        #shopMenu { 
+            display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            background: #1a1a1a; border: 4px solid #FFD700; padding: 20px; z-index: 30; 
+            text-align: center; width: 400px; border-radius: 15px; box-shadow: 0 0 50px rgba(255, 215, 0, 0.3);
         }
-
-        button { background: #4488FF; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button:hover { background: #6699FF; transform: scale(1.05); }
-
-        /* HUD (Heads Up Display) */
-        #hud { position: absolute; top: 10px; left: 10px; z-index: 5; pointer-events: none; display: none; }
+        .item { display: flex; justify-content: space-between; align-items: center; background: #333; margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .buyBtn { background: #28a745; width: 100px; }
     </style>
 </head>
 <body>
 
     <div id="menu">
         <div class="box">
-            <h1>IMP CUBES</h1>
-            
-            <label>Username</label>
-            <input type="text" id="username" placeholder="Enter Name" maxlength="12">
-
-            <label>Skin Color</label>
-            <input type="color" id="colorPicker" value="#4488FF">
-
-            <label>Login (Staff Only)</label>
-            <input type="email" id="email" placeholder="Email (Optional)">
-            
-            <button onclick="startGame()">PLAY GAME</button>
+            <h1 style="color: #4488FF;">IMP CUBES</h1>
+            <input id="username" placeholder="Username">
+            <input id="color" type="color" value="#4488FF">
+            <input id="email" placeholder="Email (Staff Only)">
+            <button onclick="play()">PLAY</button>
         </div>
     </div>
 
     <div id="hud">
-        <h3>WASD to Move | SHIFT to Sprint</h3>
-        <h3>L-Click: Shoot | R-Click: Grapple | SPACE: Parry</h3>
+        <h3>WASD: Move | SHIFT: Sprint | CLICK: Shoot</h3>
+    </div>
+
+    <div id="shopBtn">
+        <button onclick="toggleShop()">OPEN SHOP (<span id="cpDisplay">0</span> CP)</button>
+    </div>
+
+    <div id="shopMenu">
+        <h2 style="color: #FFD700; margin-top: 0;">CUBE POINTS SHOP</h2>
+        <p>Spend your CP on hats!</p>
+        
+        <div class="item">
+            <div style="text-align: left;">
+                <strong style="color: white;">Top Hat</strong><br>
+                <span style="color: #888; font-size: 12px;">Classy & Fancy</span>
+            </div>
+            <button class="buyBtn" onclick="buy('hat_top')">100 CP</button>
+        </div>
+
+        <div class="item">
+            <div style="text-align: left;">
+                <strong style="color: white;">Fez</strong><br>
+                <span style="color: #888; font-size: 12px;">Cool Red Hat</span>
+            </div>
+            <button class="buyBtn" onclick="buy('hat_fez')">250 CP</button>
+        </div>
+
+        <button onclick="toggleShop()" style="background: #dc3545; margin-top: 15px;">CLOSE</button>
     </div>
 
     <canvas id="game"></canvas>
@@ -70,137 +80,142 @@
         const socket = io();
         const canvas = document.getElementById('game');
         const ctx = canvas.getContext('2d');
-        const menu = document.getElementById('menu');
-        const hud = document.getElementById('hud');
-
+        
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
+        let myId = null;
         let gameActive = false;
-        let cam = { x: 0, y: 0 };
-        let mouse = { x: 0, y: 0 };
+        
+        // INPUTS
         const keys = {};
+        const mouse = { x: 0, y: 0 };
+        let mouseDown = false;
+        let rightDown = false;
 
-        // --- MENU LOGIC ---
-        function startGame() {
-            const name = document.getElementById('username').value || "Guest";
-            const color = document.getElementById('colorPicker').value;
-            const email = document.getElementById('email').value; // For staff login
-
-            // Send Join Request
-            socket.emit('join', { name, color, email });
+        function play() {
+            const user = document.getElementById('username').value || "Guest";
+            const col = document.getElementById('color').value;
+            const em = document.getElementById('email').value;
+            socket.emit('join', { username: user, color: col, email: em });
         }
 
-        // Server tells us the game is ready
-        socket.on('gameStart', () => {
-            menu.style.display = 'none'; // Hide Menu
-            hud.style.display = 'block'; // Show HUD
+        function toggleShop() {
+            const menu = document.getElementById('shopMenu');
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function buy(item) {
+            socket.emit('buy', item);
+        }
+
+        socket.on('init', (data) => {
+            myId = data.id;
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById('hud').style.display = 'block';
+            document.getElementById('shopBtn').style.display = 'block'; // Show Shop Button
             gameActive = true;
         });
 
-        // --- INPUT HANDLING ---
         window.onkeydown = e => keys[e.code] = true;
         window.onkeyup = e => keys[e.code] = false;
-        
-        window.onmousemove = e => {
-            mouse.x = e.clientX;
-            mouse.y = e.clientY;
-        };
-
-        let mouseDown = false;
-        let rightDown = false;
-        window.onmousedown = e => {
-            if(e.button === 0) mouseDown = true;
-            if(e.button === 2) rightDown = true;
-        };
-        window.onmouseup = e => {
-            if(e.button === 0) mouseDown = false;
-            if(e.button === 2) rightDown = false;
-        };
+        window.onmousemove = e => { mouse.x = e.clientX; mouse.y = e.clientY; };
+        window.onmousedown = e => { if(e.button===0) mouseDown=true; if(e.button===2) rightDown=true; };
+        window.onmouseup = e => { if(e.button===0) mouseDown=false; if(e.button===2) rightDown=false; };
         window.oncontextmenu = e => e.preventDefault();
 
-        // --- RENDER LOOP ---
+        // RENDER LOOP
         socket.on('state', (state) => {
-            if(!gameActive) return; // Don't draw if in menu
+            if(!gameActive || !myId) return;
 
-            const me = state.players[socket.id];
-            if(me) {
-                cam.x = me.x - canvas.width/2 + 20;
-                cam.y = me.y - canvas.height/2 + 20;
-            }
+            const me = state.players[myId];
+            if(!me) return;
 
-            ctx.fillStyle = '#222';
+            // UPDATE UI CUBE POINTS
+            document.getElementById('cpDisplay').innerText = me.money;
+
+            const cam = { x: me.x - canvas.width/2 + 20, y: me.y - canvas.height/2 + 20 };
+
+            ctx.fillStyle = '#111';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.save();
             ctx.translate(-cam.x, -cam.y);
 
             // Draw Walls
-            ctx.fillStyle = '#444';
-            state.walls.forEach(w => {
-                ctx.fillRect(w.x, w.y, w.w, w.h);
-                ctx.strokeStyle = '#666'; ctx.strokeRect(w.x, w.y, w.w, w.h);
-            });
+            ctx.fillStyle = '#333';
+            state.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
 
             // Draw Players
             for(let id in state.players) {
                 const p = state.players[id];
                 
-                // Grapple Line
+                // Grapple
                 if(p.grapple.active) {
                     ctx.beginPath(); ctx.moveTo(p.x+20, p.y+20); ctx.lineTo(p.grapple.x, p.grapple.y);
-                    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
-                }
-
-                // Parry Shield
-                if(p.parry.active) {
-                    ctx.beginPath(); ctx.arc(p.x+20, p.y+20, 50, 0, Math.PI*2);
-                    ctx.strokeStyle = 'cyan'; ctx.stroke();
+                    ctx.strokeStyle = '#fff'; ctx.stroke();
                 }
 
                 // Body
                 ctx.fillStyle = p.color;
                 ctx.fillRect(p.x, p.y, p.w, p.h);
 
+                // Hats (Visuals)
+                if(p.hat === 'top_hat') {
+                    ctx.fillStyle = '#111';
+                    ctx.fillRect(p.x, p.y - 10, 40, 10); // Brim
+                    ctx.fillRect(p.x + 5, p.y - 35, 30, 25); // Top
+                }
+                if(p.hat === 'hat_fez') {
+                    ctx.fillStyle = '#b00';
+                    ctx.fillRect(p.x + 5, p.y - 15, 30, 15);
+                    ctx.fillStyle = 'gold'; // Tassel
+                    ctx.fillRect(p.x + 15, p.y - 15, 5, 10);
+                }
+
                 // Eyes
                 const angle = p.angle;
-                const ex = Math.cos(angle) * 5, ey = Math.sin(angle) * 5;
-                ctx.fillStyle = 'white';
-                ctx.beginPath(); ctx.arc(p.x+10, p.y+15, 6, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(p.x+30, p.y+15, 6, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = 'black';
-                ctx.beginPath(); ctx.arc(p.x+10+ex, p.y+15+ey, 3, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(p.x+30+ex, p.y+15+ey, 3, 0, Math.PI*2); ctx.fill();
+                const ex = Math.cos(angle)*5, ey = Math.sin(angle)*5;
+                ctx.fillStyle='white'; 
+                ctx.beginPath(); ctx.arc(p.x+10, p.y+15, 6, 0, 7); ctx.fill();
+                ctx.beginPath(); ctx.arc(p.x+30, p.y+15, 6, 0, 7); ctx.fill();
+                ctx.fillStyle='black';
+                ctx.beginPath(); ctx.arc(p.x+10+ex, p.y+15+ey, 3, 0, 7); ctx.fill();
+                ctx.beginPath(); ctx.arc(p.x+30+ex, p.y+15+ey, 3, 0, 7); ctx.fill();
 
-                // Name & HP
+                // Name
                 ctx.fillStyle = 'white'; ctx.font = '12px Arial';
-                ctx.fillText(p.name, p.x, p.y - 20);
-                ctx.fillStyle = 'red'; ctx.fillRect(p.x, p.y-15, 40, 5);
-                ctx.fillStyle = '#0f0'; ctx.fillRect(p.x, p.y-15, 40*(p.hp/p.maxHp), 5);
+                ctx.fillText(p.username, p.x, p.y - 25);
+                
+                // HP
+                ctx.fillStyle = 'red'; ctx.fillRect(p.x, p.y-10, 40, 5);
+                ctx.fillStyle = '#0f0'; ctx.fillRect(p.x, p.y-10, 40*(p.hp/p.maxHp), 5);
             }
 
             // Draw Bullets
             state.bullets.forEach(b => {
                 ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI*2);
-                ctx.fillStyle = b.parried ? 'white' : b.color; ctx.fill();
+                ctx.fillStyle = b.color; ctx.fill();
             });
 
             ctx.restore();
         });
 
-        // --- INPUT LOOP ---
         setInterval(() => {
             if(!gameActive) return;
-            const mx = mouse.x + cam.x;
-            const my = mouse.y + cam.y;
-            const angle = Math.atan2(my - (window.innerHeight/2 + cam.y), mx - (window.innerWidth/2 + cam.x));
-
+            // Calculate Angle
+            const camX = (state && state.players[myId]) ? state.players[myId].x - canvas.width/2 : 0;
+            const camY = (state && state.players[myId]) ? state.players[myId].y - canvas.height/2 : 0;
+            const angle = Math.atan2(mouse.y - canvas.height/2, mouse.x - canvas.width/2);
+            
             socket.emit('input', {
                 up: keys['KeyW'], down: keys['KeyS'], left: keys['KeyA'], right: keys['KeyD'],
-                sprint: keys['ShiftLeft'], // ADDED SPRINT
-                shoot: mouseDown, grapple: rightDown, parry: keys['Space'],
-                mx: mx, my: my, angle: angle
+                sprint: keys['ShiftLeft'], shoot: mouseDown, grapple: rightDown,
+                angle: angle, gx: mouse.x + camX, gy: mouse.y + camY
             });
         }, 1000/60);
+
+        let state = null;
+        socket.on('state', s => state = s);
     </script>
 </body>
 </html>

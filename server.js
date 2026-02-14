@@ -27,7 +27,6 @@ const KITS = {
     ninja: { name: 'Ninja', hp: 90, speed: 1.3, weapon: { damage: 25, speed: 30, cooldown: 15, ammo: 10, reload: 60, spread: 0.02, range: 50 } }
 };
 
-// GOD KIT
 const GOD_KIT = { name:'ADMIN', hp:1000, speed:1.5, weapon:{damage:1000,speed:40,cooldown:5,ammo:999,reload:0,range:500}};
 
 // --- STATE ---
@@ -64,7 +63,6 @@ function getSpawn(team) {
     return {x,y};
 }
 
-// GAME RESET
 function resetGame(mode, mapIdx) {
     gameState.mode = mode;
     gameState.mapIndex = mapIdx;
@@ -72,16 +70,14 @@ function resetGame(mode, mapIdx) {
     gameState.scores = { red: 0, blue: 0 };
     gameState.timer = ROUND_TIME;
     gameState.phase = 'GAME';
-    bullets = [];
+    bullets = []; // Clear bullets on reset
 
-    // Objectives
     gameState.hill = (mode === 'KOTH') ? { x:900, y:650, w:200, h:200 } : null;
     gameState.flags = (mode === 'CTF') ? [
         { team:'RED', x:100, y:750, base:{x:100,y:750}, carrier:null },
         { team:'BLUE', x:1900, y:750, base:{x:1900,y:750}, carrier:null }
     ] : [];
 
-    // Reset Players (Keep settings, just respawn)
     Object.keys(players).forEach((id, i) => {
         let p = players[id];
         if(!p.isDummy) {
@@ -90,24 +86,19 @@ function resetGame(mode, mapIdx) {
                 p.color = (p.team === 'RED') ? '#ff4757' : '#4488FF';
             } else {
                 p.team = 'FFA';
-                // Restore color if not owner or if owner toggled god mode off
-                p.color = (p.isOwner && p.godMode) ? '#FFD700' : '#4488FF'; 
+                p.color = (p.isOwner && p.godMode) ? '#FFD700' : '#4488FF';
             }
             respawn(p);
         } else {
-            // Remove dummies on round reset to clean up
-            delete players[id];
+            delete players[id]; // Cleanup dummies
         }
     });
 }
 
 function respawn(p) {
     let s = getSpawn(p.team);
-    p.x=s.x; p.y=s.y; 
-    
-    // Apply Kit Stats (God Mode check)
+    p.x=s.x; p.y=s.y;
     let k = (p.isOwner && p.godMode) ? GOD_KIT : p.selectedKit;
-    
     p.hp=k.hp; p.maxHp=k.hp; p.speed=k.speed; p.kit=k;
     p.ammo=k.weapon.ammo; p.maxAmmo=k.weapon.ammo;
     p.reloading=false; p.vx=0; p.vy=0;
@@ -137,14 +128,10 @@ io.on('connection', (socket) => {
             p.money += 1000;
             if(userDB[p.username]) { userDB[p.username].money = p.money; saveDB(); }
         }
-        if(data.type === 'kickAll') {
-            io.emit('chatMsg', { user: '[SYSTEM]', text: 'Server Restarting...', color: 'red' });
-            // Logic to actually kick could go here
-        }
         if(data.type === 'toggleGod') {
             p.godMode = !p.godMode;
             p.color = p.godMode ? '#FFD700' : '#4488FF';
-            respawn(p); // Apply new stats
+            respawn(p);
             io.emit('chatMsg', { user: '[SYSTEM]', text: `God Mode: ${p.godMode ? 'ON' : 'OFF'}`, color: 'gold' });
         }
         if(data.type === 'spawnDummy') {
@@ -154,13 +141,13 @@ io.on('connection', (socket) => {
                 id: id, username: "Dummy", isDummy: true,
                 x:s.x, y:s.y, vx:0, vy:0, w:40, h:40,
                 hp:100, maxHp:100, color:'#888',
-                grapple:{active:false}, team:'FFA',
-                score:0, level:0, hat:'none'
+                grapple:{active:false}, team:'FFA', score:0, level:0, hat:'none'
             };
         }
         if(data.type === 'clearDummies') {
             for(let id in players) if(players[id].isDummy) delete players[id];
         }
+        if(data.type === 'kickAll') io.emit('chatMsg', { user: '[SYSTEM]', text: 'Server Restarting...', color: 'red' });
     });
 
     socket.on('buy', (item) => {
@@ -176,31 +163,22 @@ io.on('connection', (socket) => {
     socket.on('input', (d) => {
         let p = players[socket.id]; if(!p) return;
         p.angle = d.angle;
-        
         let spd = p.speed * (d.dash && p.dashTimer<=0 ? 25 : 0.8);
         if(d.dash && p.dashTimer<=0) p.dashTimer=90;
         if(d.up) p.vy-=spd; if(d.down) p.vy+=spd; if(d.left) p.vx-=spd; if(d.right) p.vx+=spd;
 
-        // Reload Logic
         if(p.reloadTimer > 0) {
-            p.reloadTimer--; 
-            if(p.reloadTimer<=0) { p.ammo=p.maxAmmo; p.reloading=false; }
+            p.reloadTimer--; if(p.reloadTimer<=0) { p.ammo=p.maxAmmo; p.reloading=false; }
         } else if(d.shoot && p.shootTimer<=0) {
             if(p.ammo>0) {
                 p.shootTimer = p.kit.weapon.cooldown; p.ammo--;
                 let cnt = p.kit.weapon.count||1;
                 for(let i=0;i<cnt;i++) {
                     let a = p.angle + (Math.random()-0.5)*(p.kit.weapon.spread||0);
-                    bullets.push({
-                        x:p.x+20, y:p.y+20, 
-                        vx:Math.cos(a)*p.kit.weapon.speed, vy:Math.sin(a)*p.kit.weapon.speed,
-                        dmg:p.kit.weapon.damage, owner:socket.id, 
-                        life:p.kit.weapon.range||100, color:p.color
-                    });
+                    bullets.push({x:p.x+20,y:p.y+20,vx:Math.cos(a)*p.kit.weapon.speed,vy:Math.sin(a)*p.kit.weapon.speed,dmg:p.kit.weapon.damage,owner:socket.id,life:p.kit.weapon.range||100,color:p.color});
                 }
             } else { p.reloading=true; p.reloadTimer=p.kit.weapon.reload; }
         }
-        
         if(d.grapple && !p.grapple.active) { p.grapple.active=true; p.grapple.x=d.gx; p.grapple.y=d.gy; }
         else if(!d.grapple) p.grapple.active=false;
     });
@@ -210,12 +188,7 @@ io.on('connection', (socket) => {
         if(p && m.trim()) io.emit('chatMsg', { user:`[Lvl ${p.level}] ${p.username}`, text:m.substring(0,60), color:p.color });
     });
 
-    socket.on('disconnect', () => {
-        if(players[socket.id]) {
-            console.log("Player disconnected:", socket.id);
-            delete players[socket.id];
-        }
-    });
+    socket.on('disconnect', () => { delete players[socket.id]; });
 });
 
 function auth(s, d, isLogin) {
@@ -224,36 +197,24 @@ function auth(s, d, isLogin) {
     
     let baseKit = KITS[d.kit] || KITS.assault;
     let isOwner = acc.email === 'raidenrmarks12@gmail.com';
-    
-    // Initial Setup
     let startingKit = isOwner ? GOD_KIT : baseKit;
 
     players[s.id] = {
         id:s.id, username: isLogin?d.user:"Guest"+Math.floor(Math.random()*9999),
         team:'FFA', x:0, y:0, vx:0, vy:0, w:40, h:40,
-        
-        // Kit & Stats
-        selectedKit: baseKit, // Remember what they picked
-        kit: startingKit,
+        selectedKit: baseKit, kit: startingKit,
         hp: startingKit.hp, maxHp: startingKit.hp, speed: startingKit.speed,
-        
-        // Owner flags
-        isOwner: isOwner,
-        godMode: isOwner, // Start in God Mode if owner
-
+        isOwner: isOwner, godMode: isOwner,
         color: isOwner?'#FFD700':'#4488FF',
         money:acc.money, xp:acc.xp, level:getLevel(acc.xp), items:acc.items||[], hat:'none',
         ammo:startingKit.weapon.ammo, maxAmmo:startingKit.weapon.ammo, reloading:false, reloadTimer:0,
-        shootTimer:0, dashTimer:0, grapple:{active:false},
-        score:0
+        shootTimer:0, dashTimer:0, grapple:{active:false}, score:0
     };
     respawn(players[s.id]);
     s.emit('startGame', { id:s.id, isOwner:isOwner });
 }
 
-// LOOP
 setInterval(() => {
-    // 1. LOGIC
     if(gameState.phase === 'GAME') {
         gameState.timer--;
         if(gameState.timer <= 0) {
@@ -261,7 +222,6 @@ setInterval(() => {
             let sorted = Object.values(players).filter(p=>!p.isDummy).sort((a,b)=>b.score-a.score).slice(0,5);
             io.emit('gameover', { top:sorted, scores:gameState.scores });
         }
-        // KOTH
         if(gameState.mode === 'KOTH' && gameState.hill) {
             let r=0, b=0;
             for(let id in players) {
@@ -286,23 +246,16 @@ setInterval(() => {
         }
     }
 
-    // 2. PHYSICS
     for(let id in players) {
         let p = players[id];
-        
-        // Dummy Physics (Gravity/Friction only)
         p.x+=p.vx; p.y+=p.vy; p.vx*=0.9; p.vy*=0.9;
-        
         if(!p.isDummy) {
             if(p.dashTimer>0) p.dashTimer--; if(p.shootTimer>0) p.shootTimer--;
             if(p.grapple.active) { p.vx+=(p.grapple.x-(p.x+20))*0.002; p.vy+=(p.grapple.y-(p.y+20))*0.002; }
         }
-
         gameState.walls.forEach(w=>{
             if(p.x<w.x+w.w && p.x+p.w>w.x && p.y<w.y+w.h && p.y+p.h>w.y) { p.x-=p.vx*1.2; p.y-=p.vy*1.2; p.vx=0; p.vy=0; }
         });
-
-        // CTF
         if(gameState.mode === 'CTF' && !p.isDummy) {
             gameState.flags.forEach(f => {
                 if(!f.carrier && p.team !== f.team && Math.hypot(p.x-f.x, p.y-f.y)<40) f.carrier=p.id;
@@ -314,25 +267,27 @@ setInterval(() => {
         }
     }
 
-    // 3. BULLETS
     for(let i=bullets.length-1; i>=0; i--) {
         let b=bullets[i]; b.x+=b.vx; b.y+=b.vy; b.life--;
         let hit = gameState.walls.some(w=>b.x>w.x && b.x<w.x+w.w && b.y>w.y && b.y<w.y+w.h);
         
+        // CRASH FIX: Check if shooter still exists
+        let shooter = players[b.owner];
+        if(!shooter) { bullets.splice(i,1); continue; }
+
         if(!hit) {
             for(let id in players) {
                 let p = players[id];
-                if(b.owner!==id && (gameState.mode==='FFA' || p.team!==players[b.owner].team) && b.x>p.x && b.x<p.x+p.w && b.y>p.y && b.y<p.y+p.h) {
+                if(b.owner!==id && (gameState.mode==='FFA' || p.team!==shooter.team) && b.x>p.x && b.x<p.x+p.w && b.y>p.y && b.y<p.y+p.h) {
                     p.hp-=b.dmg; hit=true;
                     if(p.hp<=0) {
-                        let k = players[b.owner];
-                        if(k && !k.isDummy) { 
-                            k.score+=10; k.money+=25; k.xp+=50; k.level=getLevel(k.xp);
-                            if(userDB[k.username]) { userDB[k.username].money=k.money; userDB[k.username].xp=k.xp; saveDB(); }
+                        if(!shooter.isDummy) { 
+                            shooter.score+=10; shooter.money+=25; shooter.xp+=50; shooter.level=getLevel(shooter.xp);
+                            if(userDB[shooter.username]) { userDB[shooter.username].money=shooter.money; userDB[shooter.username].xp=shooter.xp; saveDB(); }
                         }
                         if(gameState.mode==='CTF') gameState.flags.forEach(f=>{if(f.carrier===p.id){f.carrier=null;f.x=p.x;f.y=p.y;}});
                         
-                        if(p.isDummy) delete players[id]; // Kill dummy permanently
+                        if(p.isDummy) delete players[id];
                         else respawn(p);
                     }
                 }
@@ -348,4 +303,5 @@ setInterval(() => {
     io.emit('state', { players, bullets, game:gameState });
 }, 1000/60);
 
-http.listen(process.env.PORT || 3000, () => console.log('Server running'));
+const PORT = process.env.PORT || 3000;
+http.listen(PORT, () => console.log(`Server on ${PORT}`));

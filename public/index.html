@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Imp Cubes: Lobby</title>
+    <title>Imp Cubes: Server Browser</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700&display=swap" rel="stylesheet">
     <style>
@@ -14,9 +14,10 @@
         .overlay { position: absolute; width: 100%; height: 100%; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.9); }
         
         h1, h2 { font-family: 'Fredoka One'; color: var(--primary); margin-top: 0; }
+        h3 { font-family: 'Fredoka One'; margin: 5px 0; color: #aaa; }
         .btn { width: 100%; padding: 12px; margin-top: 8px; border: none; border-radius: 8px; font-family: 'Fredoka One'; cursor: pointer; text-transform: uppercase; transition: 0.1s; }
         .btn:hover { filter: brightness(1.2); }
-        .btn-blue { background: var(--primary); color: white; } .btn-green { background: #00b894; color: white; } .btn-red { background: #ff4757; color: white; }
+        .btn-blue { background: var(--primary); color: white; } .btn-green { background: #00b894; color: white; } .btn-red { background: #ff4757; color: white; } .btn-purple { background: #9b59b6; color: white; }
         input { width: 100%; padding: 12px; margin-bottom: 10px; background: rgba(0,0,0,0.5); border: 2px solid #444; color: white; border-radius: 8px; box-sizing: border-box; }
         .kit-container { display: flex; gap: 5px; margin-bottom: 15px; }
         .kit-btn { flex: 1; padding: 10px 5px; background: #333; border: 2px solid transparent; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
@@ -31,12 +32,22 @@
         #chatBox { position: absolute; bottom: 20px; left: 20px; width: 300px; pointer-events: auto; }
         #chatMsgs { height: 150px; overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-end; mask-image: linear-gradient(to top, black 80%, transparent 100%); text-shadow: 1px 1px 2px black; font-weight: bold; font-size: 13px; }
         #chatInput { background: rgba(0,0,0,0.6); display: none; margin: 0; color: white; border: 1px solid #666; border-radius: 4px; }
+        
         #pauseMenu { display: none; } .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
         
-        /* NEW LOBBY CSS */
+        /* NEW LOBBY BROWSER STYLES */
         #lobbyMenu { display: none; } 
-        .lobby-code { font-size: 40px; letter-spacing: 5px; color: var(--accent); margin: 20px 0; border: 2px dashed #444; padding: 10px; }
+        #lobbyContainer { display: flex; gap: 20px; text-align: left; }
+        #lobbyList { flex: 1.5; background: rgba(0,0,0,0.3); border-radius: 8px; height: 300px; overflow-y: auto; padding: 10px; }
+        #createPanel { flex: 1; border-left: 1px solid #444; padding-left: 20px; display: flex; flex-direction: column; }
+        .lobby-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; margin-bottom: 5px; border-radius: 6px; }
+        .lobby-info { font-size: 12px; color: #ccc; }
+        .lobby-name { font-weight: bold; font-size: 14px; color: white; }
         #lobbyDisplay { position:absolute; top:50px; left:50%; transform:translateX(-50%); font-size:14px; color:#aaa; font-family:'Fredoka One'; }
+        
+        /* Checkbox Style */
+        .toggle-cont { display: flex; align-items: center; gap: 10px; margin: 10px 0; font-size: 14px; }
+        input[type="checkbox"] { width: auto; margin: 0; }
     </style>
 </head>
 <body>
@@ -59,13 +70,29 @@
     </div>
 
     <div id="lobbyMenu" class="overlay" style="z-index: 199;">
-        <div class="glass" style="width: 400px;">
-            <h2>LOBBY SELECTOR</h2>
-            <p style="color:#aaa; font-size:14px;">Create a new game or join a friend.</p>
-            <button class="btn btn-green" onclick="socket.emit('createLobby')">CREATE LOBBY</button>
-            <div style="display:flex; align-items:center; gap:10px; margin-top:20px; border-top:1px solid #444; padding-top:20px;">
-                <input id="lobbyCodeInput" placeholder="Enter Code (e.g. A1B2)" style="margin:0; text-transform:uppercase;">
-                <button class="btn btn-blue" style="margin:0; width:100px;" onclick="joinLobby()">JOIN</button>
+        <div class="glass" style="width: 700px;">
+            <h2>SERVER BROWSER</h2>
+            <div id="lobbyContainer">
+                <div id="lobbyList">
+                    <div style="color:#888; text-align:center; padding:20px;">Loading servers...</div>
+                </div>
+
+                <div id="createPanel">
+                    <h3 style="color:white; text-align:center;">CREATE GAME</h3>
+                    <input id="newLobbyName" placeholder="Room Name (e.g. Pro FFA)">
+                    <div class="toggle-cont">
+                        <input type="checkbox" id="privateCheck">
+                        <label for="privateCheck">Private (Hidden)</label>
+                    </div>
+                    <button class="btn btn-green" onclick="createLobby()">START SERVER</button>
+                    
+                    <h3 style="color:white; text-align:center; margin-top:30px;">JOIN CODE</h3>
+                    <div style="display:flex; gap:5px;">
+                        <input id="lobbyCodeInput" placeholder="Code" style="margin:0; text-transform:uppercase;">
+                        <button class="btn btn-blue" style="margin:0; width:60px;" onclick="joinPrivate()">GO</button>
+                    </div>
+                    <button class="btn btn-purple" style="margin-top:10px; font-size:12px;" onclick="refreshLobbies()">REFRESH LIST</button>
+                </div>
             </div>
         </div>
     </div>
@@ -73,7 +100,20 @@
     <div id="pauseMenu" class="overlay">
         <div class="glass" style="width: 350px;">
             <h2>PAUSED</h2>
-            <div class="menu-grid"><button class="btn btn-blue" onclick="togglePause()">RESUME</button><button class="btn btn-red" onclick="location.reload()">LEAVE GAME</button></div>
+            <div class="menu-grid">
+                <button class="btn btn-blue" onclick="togglePause()">RESUME</button>
+                <button class="btn btn-red" onclick="location.reload()">LEAVE GAME</button>
+            </div>
+            <div id="staffPanel" style="display:none; border-top:1px solid #555; margin-top:20px; padding-top:10px;">
+                <h3 style="color:var(--accent)">STAFF PANEL</h3>
+                <div class="menu-grid">
+                    <button class="btn btn-purple" onclick="socket.emit('staffAction',{type:'toggleGod'})">TOGGLE GOD</button>
+                    <button class="btn btn-blue" onclick="socket.emit('staffAction',{type:'spawnDummy'})">SPAWN DUMMY</button>
+                    <button class="btn btn-green" onclick="socket.emit('staffAction',{type:'giveCP'})">+1000 CP</button>
+                    <button class="btn btn-red" onclick="socket.emit('staffAction',{type:'skipRound'})">SKIP ROUND</button>
+                </div>
+                <button class="btn btn-red" style="margin-top:10px" onclick="socket.emit('staffAction',{type:'clearDummies'})">CLEAR DUMMIES</button>
+            </div>
         </div>
     </div>
 
@@ -81,7 +121,7 @@
         <div id="topBar"></div>
         <div id="lobbyDisplay">LOBBY: ????</div>
         <div id="controlsInfo">
-            <div>Move <span class="key">WASD</span></div><div>Dash <span class="key">SHIFT</span></div><div>Shoot <span class="key">L-CLICK</span></div><div>Grapple <span class="key">R-CLICK</span></div><div>Chat <span class="key">ENTER</span></div>
+            <div>Move <span class="key">WASD</span></div><div>Dash <span class="key">SHIFT</span></div><div>Shoot <span class="key">L-CLICK</span></div><div>Grapple <span class="key">R-CLICK</span></div><div>Chat <span class="key">ENTER</span></div><div>Menu <span class="key">P</span></div>
         </div>
         <div id="statsArea">
             <div id="ammoText" style="font-family:'Fredoka One'; font-size:24px;">30 / 30</div>
@@ -108,14 +148,48 @@
         function selKit(k, el) { kit=k; document.querySelectorAll('.kit-btn').forEach(b=>b.classList.remove('selected')); el.classList.add('selected'); }
         function val(id) { return document.getElementById(id).value; }
         function auth(t) { socket.emit(t, {user:val('user'), pass:val('pass'), email:val('email'), kit:kit}); }
-        function joinLobby() { let c = document.getElementById('lobbyCodeInput').value; if(c) socket.emit('joinLobby', c); }
+        
+        function createLobby() {
+            let name = document.getElementById('newLobbyName').value || "Unnamed Server";
+            let isPrivate = document.getElementById('privateCheck').checked;
+            socket.emit('createLobby', { name: name, isPublic: !isPrivate });
+        }
+        function joinPrivate() { let c = document.getElementById('lobbyCodeInput').value; if(c) socket.emit('joinLobby', c); }
+        function joinPublic(id) { socket.emit('joinLobby', id); }
+        function refreshLobbies() { socket.emit('requestLobbies'); }
 
         socket.on('authMsg', d => { document.getElementById('msg').innerText = d.m; document.getElementById('msg').style.color = d.s?'#0f0':'#f00'; });
         
-        // --- NEW FLOW EVENTS ---
+        // --- LOBBY LIST LOGIC ---
         socket.on('authSuccess', () => {
             document.getElementById('mainMenu').style.display = 'none';
             document.getElementById('lobbyMenu').style.display = 'flex';
+        });
+
+        socket.on('lobbyUpdate', () => {
+            // Only refresh if we are currently in the lobby menu
+            if(document.getElementById('lobbyMenu').style.display === 'flex') refreshLobbies();
+        });
+
+        socket.on('lobbyList', (list) => {
+            const cont = document.getElementById('lobbyList');
+            cont.innerHTML = "";
+            if(list.length === 0) {
+                cont.innerHTML = `<div style="color:#666; text-align:center; padding:20px;">No public servers found.<br>Create one!</div>`;
+                return;
+            }
+            list.forEach(l => {
+                let div = document.createElement('div');
+                div.className = 'lobby-item';
+                div.innerHTML = `
+                    <div>
+                        <div class="lobby-name">${l.name}</div>
+                        <div class="lobby-info">${l.mode} | ${l.map} | ${l.count} Players</div>
+                    </div>
+                    <button class="btn-green" style="width:auto; padding:5px 15px; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="joinPublic('${l.id}')">JOIN</button>
+                `;
+                cont.appendChild(div);
+            });
         });
 
         socket.on('startGame', d => { 
@@ -124,10 +198,10 @@
             document.getElementById('lobbyMenu').style.display='none'; 
             document.getElementById('hud').style.display='block';
             document.getElementById('lobbyDisplay').innerText = "LOBBY: " + d.lobbyId;
+            if(d.isOwner) document.getElementById('staffPanel').style.display='block';
         });
 
         socket.on('mapChange', d => { currentWalls = d.walls; });
-
         socket.on('chatMsg', d => { const l = document.createElement('div'); l.innerHTML = `<span style="color:${d.color}">${d.user}:</span> ${d.text}`; document.getElementById('chatMsgs').appendChild(l); });
 
         const keys={w:0,a:0,s:0,d:0,shift:0}, mouse={x:0,y:0,down:0,right:0}, chatIn=document.getElementById('chatInput');

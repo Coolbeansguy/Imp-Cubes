@@ -23,7 +23,6 @@ const KITS = {
     ninja: { name: 'Ninja', hp: 90, speed: 1.3, weapon: { damage: 25, speed: 30, cooldown: 15, ammo: 10, reload: 60, spread: 0.02, range: 50 } }
 };
 
-// --- SHOP ITEMS ---
 const SHOP_ITEMS = {
     'tophat': { name: 'Top Hat', price: 500, type: 'hat' },
     'crown': { name: 'Gold Crown', price: 5000, type: 'hat' },
@@ -56,7 +55,6 @@ class Lobby {
             walls: MAPS[0].walls, scores: { red: 0, blue: 0 },
             flags: [], hill: null, wave: 1, zombiesLeft: 0, juggernautId: null
         };
-        
         let initialMode = settings.mode || 'FFA';
         let initialMap = parseInt(settings.map) || 0;
         this.resetGame(initialMode, initialMap);
@@ -159,6 +157,7 @@ io.on('connection', (socket) => {
             userDB[p.username].money = p.money;
             userDB[p.username].xp = p.xp;
             userDB[p.username].items = p.items;
+            userDB[p.username].equippedHat = p.equippedHat; // Save Hat
             saveDB();
         }
     };
@@ -184,44 +183,37 @@ io.on('connection', (socket) => {
             pass: d.pass, 
             selectedKit: KITS[d.kit] || KITS.assault,
             money: acc.money, xp: acc.xp, level: getLevel(acc.xp), 
-            items: acc.items || [], // Load items
-            equippedHat: 'none',
+            items: acc.items || [], 
+            equippedHat: acc.equippedHat || 'none',
             isOwner: isOwner, godMode: isOwner, isGuest: !isLogin
         };
-        s.emit('authSuccess', { isOwner, user: currentUser.username, pass: currentUser.pass, money: currentUser.money, items: currentUser.items });
+        s.emit('authSuccess', { isOwner, user: currentUser.username, pass: currentUser.pass, money: currentUser.money, items: currentUser.items, equippedHat: currentUser.equippedHat });
         sendLobbyList(s);
     }
 
-    // --- SHOP SYSTEM ---
+    // --- SHOP & EQUIP ---
     socket.on('buy', (itemId) => {
         if(!currentUser || !SHOP_ITEMS[itemId]) return;
         let item = SHOP_ITEMS[itemId];
         
-        // Equip if owned
-        if(currentUser.items.includes(itemId)) {
-            if(item.type === 'hat') currentUser.equippedHat = itemId;
-            socket.emit('shopMsg', { s:true, m: "Equipped " + item.name });
-            return;
-        }
-
-        // Buy logic
-        if(currentUser.money >= item.price) {
+        if(currentUser.money >= item.price && !currentUser.items.includes(itemId)) {
             currentUser.money -= item.price;
             currentUser.items.push(itemId);
-            if(item.type === 'hat') currentUser.equippedHat = itemId;
-            
             syncData(currentUser);
-            socket.emit('authSuccess', { // Refresh client data
-                isOwner: currentUser.isOwner, 
-                user: currentUser.username, 
-                pass: currentUser.pass, 
-                money: currentUser.money, 
-                items: currentUser.items 
-            });
+            socket.emit('shopUpdate', { money: currentUser.money, items: currentUser.items });
             socket.emit('shopMsg', { s:true, m: "Bought " + item.name });
+        } else if (currentUser.items.includes(itemId)) {
+            socket.emit('shopMsg', { s:false, m: "Already owned!" });
         } else {
             socket.emit('shopMsg', { s:false, m: "Not enough CP!" });
         }
+    });
+
+    socket.on('equip', (itemId) => {
+        if(!currentUser || !currentUser.items.includes(itemId) && itemId !== 'none') return;
+        currentUser.equippedHat = itemId;
+        syncData(currentUser);
+        socket.emit('shopMsg', { s:true, m: "Equipped!" });
     });
 
     socket.on('requestLobbies', () => sendLobbyList(socket));
@@ -257,7 +249,7 @@ io.on('connection', (socket) => {
             color: currentUser.isOwner?'#FFD700':'#4488FF',
             ammo:0, maxAmmo:0, reloading:false, reloadTimer:0, shootTimer:0, dashTimer:0,
             grapple:{active:false}, score:0, type:'player', dead:false, lives:3,
-            hat: currentUser.equippedHat // Apply hat
+            hat: currentUser.equippedHat 
         };
         
         lobby.players[s.id] = p;
@@ -287,6 +279,7 @@ io.on('connection', (socket) => {
                 }
             } else { p.reloading=true; p.reloadTimer=p.kit.weapon.reload; }
         }
+        // FIXED GRAPPLE PHYSICS - INCREASED FORCE
         if(d.grapple && !p.grapple.active) { p.grapple.active=true; p.grapple.x=d.gx; p.grapple.y=d.gy; } else if(!d.grapple) p.grapple.active=false;
     });
 
@@ -297,7 +290,7 @@ io.on('connection', (socket) => {
             let args = m.split(' '); let cmd = args[0].toLowerCase();
             let isMod = lobby.mods.includes(socket.id) || p.isOwner;
             if(cmd === '/mod' && isMod) { let t = Object.values(lobby.players).find(u => u.username === args[1]); if(t) { lobby.mods.push(t.id); io.to(lid).emit('chatMsg', {user:'[SYSTEM]', text:`${t.username} is Mod`, color:'cyan'}); } }
-            // ... (Other commands like map/mode/size remain same)
+            // ...
             return;
         }
         io.to(lid).emit('chatMsg', { user:`[Lvl ${p.level}] ${p.username}`, text:m.substring(0,60), color:p.color });
@@ -319,7 +312,7 @@ io.on('connection', (socket) => {
             if(data.type==='toggleGod' && p.isOwner) { p.godMode=!p.godMode; p.color=p.godMode?'#FFD700':'#4488FF'; lobbies[lid].respawn(p); }
             if(data.type==='spawnDummy') { let id='d_'+Math.random(); let s=lobbies[lid].getSpawn('FFA'); lobbies[lid].players[id]={id:id,username:"Dummy",isDummy:true,x:s.x,y:s.y,vx:0,vy:0,w:40,h:40,hp:100,maxHp:100,color:'#888',grapple:{active:false},team:'FFA',score:0,level:0,hat:'none',type:'player',angle:0}; }
             if(data.type==='clearDummies') { for(let id in lobbies[lid].players) if(lobbies[lid].players[id].isDummy) delete lobbies[lid].players[id]; }
-            if(data.type==='giveCP' && p.isOwner) { currentUser.money += 1000; syncData(currentUser); socket.emit('authSuccess', {isOwner:true, user:p.username, pass:null, money:currentUser.money, items:currentUser.items}); }
+            if(data.type==='giveCP' && p.isOwner) { currentUser.money += 1000; syncData(currentUser); socket.emit('authSuccess', {isOwner:true, user:p.username, pass:null, money:currentUser.money, items:currentUser.items, equippedHat:currentUser.equippedHat}); }
         }
     });
 });
@@ -352,7 +345,11 @@ function updateLobby(g) {
     }
     for(let id in g.players) {
         let p = g.players[id]; p.x+=p.vx; p.y+=p.vy; p.vx*=0.9; p.vy*=0.9;
-        if(p.type === 'player' && !p.dead) { if(p.dashTimer>0) p.dashTimer--; if(p.shootTimer>0) p.shootTimer--; if(p.grapple.active) { p.vx+=(p.grapple.x-(p.x+20))*0.002; p.vy+=(p.grapple.y-(p.y+20))*0.002; } }
+        if(p.type === 'player' && !p.dead) { 
+            if(p.dashTimer>0) p.dashTimer--; if(p.shootTimer>0) p.shootTimer--; 
+            // BUFFED GRAPPLE FORCE
+            if(p.grapple.active) { p.vx+=(p.grapple.x-(p.x+20))*0.004; p.vy+=(p.grapple.y-(p.y+20))*0.004; } 
+        }
         if(!p.dead) g.gameState.walls.forEach(w=>{ if(p.x<w.x+w.w && p.x+p.w>w.x && p.y<w.y+w.h && p.y+p.h>w.y) { p.x-=p.vx*1.2; p.y-=p.vy*1.2; p.vx=0; p.vy=0; } });
     }
     for(let i=g.bullets.length-1; i>=0; i--) {

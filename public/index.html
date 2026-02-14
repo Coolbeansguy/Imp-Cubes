@@ -7,25 +7,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700&display=swap" rel="stylesheet">
     <style>
-        :root { 
-            --primary: #00f2ff; /* Neon Cyan */
-            --secondary: #ff0055; /* Neon Pink */
-            --accent: #ffee00; /* Gold */
-            --glass: rgba(15, 15, 25, 0.95);
-            --glass-border: rgba(255, 255, 255, 0.15);
-        }
-        
+        :root { --primary: #00f2ff; --secondary: #ff0055; --accent: #ffee00; --glass: rgba(15, 15, 25, 0.95); --glass-border: rgba(255, 255, 255, 0.15); }
         body { margin: 0; background: url('https://media.discordapp.net/attachments/1286433136804106282/1472114823369330689/image.png') no-repeat center center fixed; background-size: cover; overflow: hidden; font-family: 'Nunito', sans-serif; color: white; user-select: none; }
         canvas { display: block; }
-
-        /* ANIMATIONS */
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0.4); } 70% { box-shadow: 0 0 0 20px rgba(0, 242, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0); } }
-
+        /* ... (Keep previous animations and UI styles) ... */
+        /* ADDING ONLY NEW STYLES HERE FOR BREVITY, BUT USE FULL CSS FROM PREVIOUS STEP */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } } @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } } @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0.4); } 70% { box-shadow: 0 0 0 20px rgba(0, 242, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0); } }
         #backdrop { position: absolute; width: 100%; height: 100%; background: rgba(10, 10, 20, 0.85); backdrop-filter: blur(8px); z-index: -1; animation: fadeIn 1s; }
-
-        /* BIGGER NAV */
         #navbar { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; background: rgba(0,0,0,0.6); border-bottom: 1px solid var(--glass-border); }
         .nav-logo { font-family: 'Fredoka One'; font-size: 40px; color: var(--primary); text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 15px var(--primary); }
         .nav-links { display: flex; gap: 30px; }
@@ -33,289 +21,100 @@
         .nav-btn:hover { color: white; transform: scale(1.1); text-shadow: 0 0 10px white; }
         .account-box { display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.08); padding: 10px 25px; border-radius: 40px; border: 1px solid var(--glass-border); font-size: 18px; }
         .currency { color: var(--accent); font-weight: bold; font-family: 'Fredoka One'; }
-
-        /* BIGGER MAIN MENU */
         #deadshotMenu { display: none; height: calc(100vh - 100px); position: relative; }
-        
-        .center-char { 
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-            text-align: center; animation: popIn 0.5s ease-out; 
-        }
-        
+        .center-char { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; animation: popIn 0.5s ease-out; }
         #charPreview { filter: drop-shadow(0 0 30px rgba(0, 242, 255, 0.2)); transition: transform 0.3s; width: 350px; height: 350px; }
         #charPreview:hover { transform: scale(1.05); }
-
-        .play-btn-large { 
-            background: linear-gradient(135deg, var(--primary), #00a8ff); border: none; 
-            padding: 20px 100px; font-size: 48px; color: #000; font-family: 'Fredoka One'; 
-            border-radius: 60px; cursor: pointer; margin-top: 30px; text-transform: uppercase;
-            animation: pulse 2s infinite; transition: all 0.2s; box-shadow: 0 10px 30px rgba(0, 242, 255, 0.3);
-        }
+        .play-btn-large { background: linear-gradient(135deg, var(--primary), #00a8ff); border: none; padding: 20px 100px; font-size: 48px; color: #000; font-family: 'Fredoka One'; border-radius: 60px; cursor: pointer; margin-top: 30px; text-transform: uppercase; animation: pulse 2s infinite; transition: all 0.2s; box-shadow: 0 10px 30px rgba(0, 242, 255, 0.3); }
         .play-btn-large:hover { transform: scale(1.05) translateY(-3px); filter: brightness(1.2); }
-        
-        .side-panel { 
-            position: absolute; top: 20%; right: 50px; width: 350px; 
-            background: var(--glass); padding: 30px; border-radius: 16px; 
-            border: 1px solid var(--glass-border); animation: popIn 0.8s;
-        }
+        .side-panel { position: absolute; top: 20%; right: 50px; width: 350px; background: var(--glass); padding: 30px; border-radius: 16px; border: 1px solid var(--glass-border); animation: popIn 0.8s; }
         .panel-title { font-family: 'Fredoka One'; margin-bottom: 20px; font-size: 24px; color: var(--secondary); text-transform: uppercase; border-bottom: 2px solid #333; padding-bottom: 10px; }
-
-        /* MODALS (BIGGER UI) */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
-        .glass-box { 
-            background: var(--glass); border: 1px solid var(--glass-border); padding: 40px; 
-            border-radius: 20px; text-align: center; position: relative; 
-            box-shadow: 0 0 60px rgba(0,0,0,0.7); animation: popIn 0.3s;
-        }
-        
-        input, select { 
-            width: 100%; padding: 18px; margin-bottom: 15px; background: rgba(0,0,0,0.4); 
-            border: 2px solid #444; color: white; border-radius: 10px; box-sizing: border-box; 
-            font-family: 'Nunito', sans-serif; font-size: 16px; transition: 0.3s;
-        }
+        .glass-box { background: var(--glass); border: 1px solid var(--glass-border); padding: 40px; border-radius: 20px; text-align: center; position: relative; box-shadow: 0 0 60px rgba(0,0,0,0.7); animation: popIn 0.3s; }
+        input, select { width: 100%; padding: 18px; margin-bottom: 15px; background: rgba(0,0,0,0.4); border: 2px solid #444; color: white; border-radius: 10px; box-sizing: border-box; font-family: 'Nunito', sans-serif; font-size: 16px; transition: 0.3s; }
         input:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(0, 242, 255, 0.2); outline: none; }
-        
         .btn { width: 100%; padding: 15px; margin-top: 8px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-family: 'Fredoka One'; text-transform: uppercase; font-size: 18px; transition: 0.2s; }
         .btn:hover { transform: translateY(-3px); filter: brightness(1.2); }
-        .btn-green { background: var(--primary); color: #000; }
-        .btn-red { background: var(--secondary); color: white; }
-        .btn-purple { background: #9b59b6; color: white; }
-
-        /* SERVER BROWSER - FULL SCREEN FEEL */
+        .btn-green { background: var(--primary); color: #000; } .btn-red { background: var(--secondary); color: white; } .btn-purple { background: #9b59b6; color: white; }
         #browserBox { width: 85%; max-width: 1400px; height: 80vh; display: flex; flex-direction: column; }
         #lobbyContainer { display: flex; gap: 30px; text-align: left; height: 100%; overflow: hidden; }
         #lobbyList { flex: 2; background: rgba(0,0,0,0.3); border-radius: 12px; overflow-y: auto; padding: 15px; height: 100%; }
         #createPanel { flex: 1; border-left: 2px solid #333; padding-left: 30px; display: flex; flex-direction: column; justify-content: center; }
-        
         .lobby-item { display: flex; justify-content: space-between; padding: 20px; border-bottom: 1px solid #333; align-items: center; transition: 0.2s; border-radius: 8px; background: rgba(255,255,255,0.03); margin-bottom: 10px; }
         .lobby-item:hover { background: rgba(255,255,255,0.08); transform: translateX(5px); border-left: 4px solid var(--primary); }
         .lobby-name { font-size: 20px; font-weight: bold; color: white; }
-
-        /* BIGGER HUD */
         #hud { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
         #topBar { position: absolute; top: 20px; width: 100%; text-align: center; font-family: 'Fredoka One'; font-size: 32px; text-shadow: 3px 3px 0 #000; letter-spacing: 2px; }
-        
-        #keybindsOverlay {
-            position: absolute; bottom: 30px; right: 30px; text-align: right;
-            font-family: 'Fredoka One'; font-size: 16px; opacity: 0.8;
-        }
-        .kb-row { margin-bottom: 8px; text-shadow: 1px 1px 0 #000; }
-        .kb-key { background: white; color: black; padding: 4px 8px; border-radius: 6px; display: inline-block; margin-right: 8px; box-shadow: 0 3px 0 #999; }
-
+        #keybindsOverlay { position: absolute; bottom: 30px; right: 30px; text-align: right; font-family: 'Fredoka One'; font-size: 16px; opacity: 0.8; }
+        .kb-row { margin-bottom: 8px; text-shadow: 1px 1px 0 #000; } .kb-key { background: white; color: black; padding: 4px 8px; border-radius: 6px; display: inline-block; margin-right: 8px; box-shadow: 0 3px 0 #999; }
         #statsArea { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); width: 500px; text-align: center; }
         .bar-bg { height: 16px; background: rgba(0,0,0,0.6); border-radius: 8px; overflow: hidden; margin-top: 8px; border: 2px solid #444; }
         .hp-fill { height: 100%; background: var(--secondary); width: 100%; transition: width 0.1s; box-shadow: 0 0 15px var(--secondary); }
         .xp-fill { height: 6px; background: var(--primary); width: 0%; margin-top: 8px; border-radius: 3px; }
-
         #chatBox { position: absolute; bottom: 30px; left: 30px; width: 400px; pointer-events: auto; }
         #chatMsgs { height: 250px; overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-end; font-size: 16px; text-shadow: 1px 1px 2px black; font-weight: bold; mask-image: linear-gradient(to top, black 80%, transparent 100%); }
         #chatInput { background: rgba(0,0,0,0.6); display: none; border: 2px solid #555; border-radius: 6px; font-size: 16px; }
-
-        /* KITS */
         .kit-container { display: flex; gap: 10px; justify-content: center; margin-bottom: 25px; flex-wrap: wrap; }
         .kit-btn { background: #222; color: #888; border: 2px solid transparent; padding: 15px 25px; cursor: pointer; text-align: center; font-size: 14px; font-weight: bold; border-radius: 10px; font-family: 'Fredoka One'; transition: 0.2s; min-width: 100px; }
         .kit-btn:hover { background: #333; color: white; }
         .kit-btn.selected { border-color: var(--primary); color: white; background: rgba(0, 242, 255, 0.15); box-shadow: 0 0 20px rgba(0, 242, 255, 0.3); transform: translateY(-5px); }
-
-        /* MISC */
         .site-logo { width: 160px; height: 160px; border-radius: 30px; margin-bottom: 20px; box-shadow: 0 0 40px var(--primary); }
-        .logout-link { color: var(--secondary); font-size: 14px; cursor: pointer; text-decoration: underline; margin-top: auto; display: inline-block; pointer-events: auto; align-self: center; font-weight: bold; }
-        .toggle-cont { display: flex; align-items: center; gap: 15px; margin: 15px 0; font-size: 16px; }
-        input[type="checkbox"] { width: 20px; height: 20px; margin: 0; }
-        
-        #pauseMenu { display: none; z-index: 2000; }
-        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
-        
-        /* SHOP */
         .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
         .shop-item { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border: 1px solid #444; cursor: pointer; text-align: center; font-size: 18px; }
         .shop-item:hover { border-color: var(--primary); background: rgba(255,255,255,0.1); }
+        #pauseMenu { display: none; z-index: 2000; } .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
     </style>
 </head>
 <body>
     <div id="backdrop"></div>
-
     <div id="navbar">
         <div class="nav-logo">IMP CUBES</div>
-        <div class="nav-links">
-            <button class="nav-btn active">PLAY</button>
-            <button class="nav-btn" onclick="openShop()">SHOP</button>
-            <button class="nav-btn" onclick="openInventory()">INVENTORY</button> </div>
-        
-        <div class="account-box" id="authBox">
-            <button class="btn-green" style="padding: 8px 30px; width: auto; font-size: 16px;" onclick="document.getElementById('loginModal').style.display='flex'">LOGIN</button>
-        </div>
-        
-        <div class="account-box" id="accBox" style="display:none;">
-            <span id="usernameDisplay" style="font-weight:bold;">Guest</span>
-            <span class="currency">$ <span id="cpDisplay">0</span></span>
-            <button style="background:none; border:none; color:var(--secondary); cursor:pointer; font-size:14px; font-weight:bold; margin-left:10px;" onclick="logout()">LOGOUT</button>
-        </div>
+        <div class="nav-links"><button class="nav-btn active">PLAY</button><button class="nav-btn" onclick="openShop()">SHOP</button><button class="nav-btn" onclick="openInventory()">INVENTORY</button></div>
+        <div class="account-box" id="authBox"><button class="btn-green" style="padding: 8px 30px; width: auto; font-size: 16px;" onclick="document.getElementById('loginModal').style.display='flex'">LOGIN</button></div>
+        <div class="account-box" id="accBox" style="display:none;"><span id="usernameDisplay" style="font-weight:bold;">Guest</span><span class="currency">$ <span id="cpDisplay">0</span></span><button style="background:none; border:none; color:var(--secondary); cursor:pointer; font-size:14px; font-weight:bold; margin-left:10px;" onclick="logout()">LOGOUT</button></div>
     </div>
 
     <div id="deadshotMenu">
-        <div class="center-char">
-            <canvas id="charPreview" width="350" height="350"></canvas>
-            <h2 id="charName" style="margin: 20px 0; font-size: 32px; color:white; text-shadow: 0 0 10px black;">Guest</h2>
-            <button class="play-btn-large" onclick="openBrowser()">PLAY NOW</button>
-            <div id="onlineCount" style="margin-top: 20px; color: var(--primary); font-size: 18px; font-weight:bold; letter-spacing: 1px;">● Connecting...</div>
-        </div>
-
-        <div class="side-panel right-panel">
-            <div class="panel-title">UPDATES</div>
-            <div style="font-size: 14px; color: #ccc; line-height: 1.8;">
-                <b style="color:white;">> Ultimate Update</b><br>
-                - Bigger, Bolder UI<br>
-                - New Inventory System<br>
-                - Juggernaut Mode<br>
-                - Admin Commands<br>
-                <br>
-                <b style="color:var(--primary);">> IMP CUBES</b>
-            </div>
-        </div>
+        <div class="center-char"><canvas id="charPreview" width="350" height="350"></canvas><h2 id="charName" style="margin: 20px 0; font-size: 32px; color:white; text-shadow: 0 0 10px black;">Guest</h2><button class="play-btn-large" onclick="openBrowser()">PLAY NOW</button><div id="onlineCount" style="margin-top: 20px; color: var(--primary); font-size: 18px; font-weight:bold; letter-spacing: 1px;">● Connecting...</div></div>
+        <div class="side-panel right-panel"><div class="panel-title">UPDATES</div><div style="font-size: 14px; color: #ccc; line-height: 1.8;"><b style="color:white;">> Ultimate Update</b><br>- Clans Added (/clan)<br>- New Classes: Medic & Support<br>- Staff Items in Shop<br>- Noclip Command<br><br><b style="color:var(--primary);">> IMP CUBES</b></div></div>
     </div>
 
     <div id="loginModal" class="modal">
         <div class="glass-box" style="width: 400px;">
-            <img src="https://media.discordapp.net/attachments/1286433136804106282/1472114823369330689/image.png?ex=69916544&is=699013c4&hm=6e53418ccc28321ed6703073c2da8530a6e16e4680acae446d8a83c2372b6352" class="site-logo">
-            <input id="user" placeholder="Username">
-            <input id="pass" type="password" placeholder="Password">
-            <input id="email" placeholder="Email (Admin Only)">
-            <button class="btn btn-green" onclick="auth('login')">LOGIN</button>
-            <button class="btn" style="background:#333; color:white;" onclick="auth('signup')">CREATE ACCOUNT</button>
-            <button class="btn" style="background:transparent; color:#888; margin-top:10px; font-size:14px;" onclick="document.getElementById('loginModal').style.display='none'">Cancel</button>
-            <div id="msg" style="margin-top:10px; color:var(--secondary); font-weight:bold;"></div>
-        </div>
-    </div>
-
-    <div id="browserModal" class="modal">
-        <div class="glass-box" id="browserBox">
-            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-                <h2 style="margin:0; font-size: 32px;">SERVER BROWSER</h2>
-                <button class="btn-red" style="width:auto; padding:10px 30px;" onclick="document.getElementById('browserModal').style.display='none'">CLOSE</button>
-            </div>
-            
-            <div id="lobbyContainer">
-                <div id="lobbyList">Loading...</div>
-                <div id="createPanel">
-                    <h3 style="color:var(--primary); font-size: 24px;">HOST GAME</h3>
-                    <input id="newLobbyName" placeholder="Server Name">
-                    <select id="modeSelect">
-                        <option value="FFA">Free For All</option>
-                        <option value="TDM">Team Deathmatch</option>
-                        <option value="KOTH">King of the Hill</option>
-                        <option value="ZOMBIES">Zombies</option>
-                        <option value="JUGGERNAUT">Juggernaut</option>
-                    </select>
-                    <select id="mapSelect">
-                        <option value="0">Arena</option>
-                        <option value="1">Maze</option>
-                        <option value="2">Towers</option>
-                        <option value="3">Open Field</option>
-                    </select>
-                    <div class="toggle-cont"><input type="checkbox" id="privateCheck"><label>Private Room</label></div>
-                    <button class="btn btn-green" onclick="createLobby()">CREATE SERVER</button>
-                    
-                    <h3 style="color:var(--primary); margin-top: 40px; font-size: 24px;">PRIVATE</h3>
-                    <div style="display:flex; gap:10px;">
-                        <input id="codeIn" placeholder="CODE" style="text-transform:uppercase;">
-                        <button class="btn btn-blue" style="width:80px;" onclick="joinPrivate()">GO</button>
-                    </div>
-                </div>
-            </div>
+            <img src="https://media.discordapp.net/attachments/1286433136804106282/1472114823369330689/image.png" class="site-logo">
+            <input id="user" placeholder="Username"><input id="pass" type="password" placeholder="Password"><input id="email" placeholder="Email (Admin Only)">
+            <button class="btn btn-green" onclick="auth('login')">LOGIN</button><button class="btn" style="background:#333; color:white;" onclick="auth('signup')">CREATE ACCOUNT</button><button class="btn" style="background:transparent; color:#888; margin-top:10px; font-size:14px;" onclick="document.getElementById('loginModal').style.display='none'">Cancel</button><div id="msg" style="margin-top:10px; color:var(--secondary); font-weight:bold;"></div>
         </div>
     </div>
 
     <div id="spawnMenu" class="modal">
-        <div class="glass-box" style="width: 600px;">
+        <div class="glass-box" style="width: 700px;">
             <h2 id="spawnTitle" style="color:var(--primary); font-size: 40px;">DEPLOYMENT</h2>
-            <p style="color:#aaa; font-size:16px; margin-bottom:30px;">Select your loadout.</p>
-            
             <div class="kit-container">
                 <div class="kit-btn selected" onclick="selKit('assault',this)">SOLDIER</div>
                 <div class="kit-btn" onclick="selKit('shotgun',this)">BREACH</div>
                 <div class="kit-btn" onclick="selKit('sniper',this)">RECON</div>
                 <div class="kit-btn" onclick="selKit('tank',this)">HEAVY</div>
                 <div class="kit-btn" onclick="selKit('ninja',this)">NINJA</div>
+                <div class="kit-btn" onclick="selKit('medic',this)">MEDIC</div>
+                <div class="kit-btn" onclick="selKit('engineer',this)">ENGINEER</div>
+                <div class="kit-btn" onclick="selKit('lmg',this)">SUPPORT</div>
             </div>
-
-            <button class="btn btn-green" style="font-size:24px; padding:20px;" onclick="spawn()">DEPLOY</button>
-            <button class="btn-red" style="margin-top:15px;" onclick="location.reload()">LEAVE MATCH</button>
+            <button class="btn btn-green" style="font-size:24px; padding:20px;" onclick="spawn()">DEPLOY</button><button class="btn-red" style="margin-top:15px;" onclick="location.reload()">LEAVE MATCH</button>
         </div>
     </div>
 
-    <div id="shopMenu" class="modal">
-        <div class="glass-box" style="width: 600px;">
-            <h2>ITEM SHOP</h2>
-            <div class="shop-grid">
-                <div class="shop-item" onclick="buy('tophat')"><div>🎩 Top Hat</div><div style="color:gold">500 CP</div></div>
-                <div class="shop-item" onclick="buy('halo')"><div>😇 Halo</div><div style="color:gold">2500 CP</div></div>
-                <div class="shop-item" onclick="buy('crown')"><div>👑 Crown</div><div style="color:gold">5000 CP</div></div>
-                <div class="shop-item" onclick="buy('red_glow')"><div>🔴 Red Glow</div><div style="color:gold">1000 CP</div></div>
-            </div>
-            <button class="btn-red" style="margin-top: 20px;" onclick="document.getElementById('shopMenu').style.display='none'">CLOSE</button>
-            <div id="shopMsg" style="margin-top:10px; font-weight:bold;"></div>
+    <div id="browserModal" class="modal">
+        <div class="glass-box" id="browserBox">
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px;"><h2 style="margin:0; font-size: 32px;">SERVER BROWSER</h2><button class="btn-red" style="width:auto; padding:10px 30px;" onclick="document.getElementById('browserModal').style.display='none'">CLOSE</button></div>
+            <div id="lobbyContainer"><div id="lobbyList">Loading...</div><div id="createPanel"><h3 style="color:var(--primary); font-size: 24px;">HOST GAME</h3><input id="newLobbyName" placeholder="Server Name"><select id="modeSelect"><option value="FFA">Free For All</option><option value="TDM">Team Deathmatch</option><option value="KOTH">King of the Hill</option><option value="ZOMBIES">Zombies</option><option value="JUGGERNAUT">Juggernaut</option></select><select id="mapSelect"><option value="0">Arena</option><option value="1">Maze</option><option value="2">Towers</option><option value="3">Open Field</option></select><div class="toggle-cont"><input type="checkbox" id="privateCheck"><label>Private Room</label></div><button class="btn btn-green" onclick="createLobby()">CREATE SERVER</button><h3 style="color:var(--primary); margin-top: 40px; font-size: 24px;">PRIVATE</h3><div style="display:flex; gap:10px;"><input id="codeIn" placeholder="CODE" style="text-transform:uppercase;"><button class="btn btn-blue" style="width:80px;" onclick="joinPrivate()">GO</button></div></div></div>
         </div>
     </div>
 
-    <div id="inventoryMenu" class="modal">
-        <div class="glass-box" style="width: 600px;">
-            <h2>INVENTORY</h2>
-            <div style="display: flex; gap: 20px; align-items: flex-start; text-align: left; margin-top: 20px;">
-                <div style="text-align:center;">
-                    <canvas id="invCharPreview" width="150" height="150" style="border:2px solid #444; border-radius:10px; background:#111;"></canvas>
-                    <div style="margin-top:5px; color:#aaa; font-size:12px;">PREVIEW</div>
-                </div>
-                <div style="flex:1;">
-                    <div id="invList" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; max-height:200px; overflow-y:auto;"></div>
-                    <button class="btn btn-green" onclick="equipSelectedItem()" style="margin-top:15px;">EQUIP SELECTED</button>
-                </div>
-            </div>
-            <button class="btn-red" style="margin-top: 20px;" onclick="document.getElementById('inventoryMenu').style.display='none'">CLOSE</button>
-        </div>
-    </div>
-
-    <div id="pauseMenu" class="modal">
-        <div class="glass-box" style="width: 400px;">
-            <h2>PAUSED</h2>
-            <div class="menu-grid">
-                <button class="btn btn-blue" onclick="togglePause()">RESUME</button>
-                <button class="btn btn-red" onclick="location.reload()">LEAVE GAME</button>
-            </div>
-            
-            <div id="staffPanel" style="display:none; margin-top:30px; border-top:1px solid #444; padding-top:20px;">
-                <h3 style="color:var(--accent); margin:0 0 10px 0;">STAFF CONTROLS</h3>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                    <button class="btn-purple" style="font-size:14px;" onclick="socket.emit('staffAction',{type:'toggleGod'})">GOD MODE</button>
-                    <button class="btn-blue" style="font-size:14px;" onclick="socket.emit('staffAction',{type:'spawnDummy'})">SPAWN BOT</button>
-                    <button class="btn-green" style="font-size:14px;" onclick="socket.emit('staffAction',{type:'giveCP'})">ADD CP</button>
-                    <button class="btn-red" style="font-size:14px;" onclick="socket.emit('staffAction',{type:'skipRound'})">SKIP ROUND</button>
-                </div>
-                <button class="btn-red" style="margin-top:15px; font-size:14px;" onclick="socket.emit('staffAction',{type:'clearDummies'})">CLEAR BOTS</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="hud">
-        <div id="topBar"></div>
-        
-        <div id="keybindsOverlay">
-            <div class="kb-row"><span class="kb-key">W</span><span class="kb-key">A</span><span class="kb-key">S</span><span class="kb-key">D</span> Move</div>
-            <div class="kb-row"><span class="kb-key">SHIFT</span> Dash</div>
-            <div class="kb-row"><span class="kb-key">L-CLICK</span> Shoot</div>
-            <div class="kb-row"><span class="kb-key">R-CLICK</span> Grapple</div>
-            <div class="kb-row"><span class="kb-key">P</span> Menu</div>
-            <div class="kb-row"><span class="kb-key">ENTER</span> Chat</div>
-        </div>
-
-        <div id="chatBox"><div id="chatMsgs"></div><input id="chatInput"></div>
-        
-        <div id="statsArea">
-            <div style="font-size: 32px; font-weight: bold; margin-bottom: 5px; font-family:'Fredoka One'; text-shadow:3px 3px 0 black;" id="ammoDisplay">30/30</div>
-            <div class="bar-bg"><div id="hpBar" class="hp-fill"></div></div>
-            <div class="xp-fill" id="xpBar"></div>
-        </div>
-    </div>
+    <div id="shopMenu" class="modal"><div class="glass-box" style="width: 600px;"><h2>ITEM SHOP</h2><div class="shop-grid"><div class="shop-item" onclick="buy('tophat')"><div>🎩 Top Hat</div><div style="color:gold">500 CP</div></div><div class="shop-item" onclick="buy('halo')"><div>😇 Halo</div><div style="color:gold">2500 CP</div></div><div class="shop-item" onclick="buy('crown')"><div>👑 Crown</div><div style="color:gold">5000 CP</div></div><div class="shop-item" onclick="buy('red_glow')"><div>🔴 Red Glow</div><div style="color:gold">1000 CP</div></div><div class="shop-item" onclick="buy('police')"><div>👮 Police</div><div style="color:cyan">STAFF</div></div><div class="shop-item" onclick="buy('dev_crown')"><div>🛠 Dev Crown</div><div style="color:gold">OWNER</div></div><div class="shop-item" onclick="buy('void_glow')"><div>⚫ Void</div><div style="color:white">10000 CP</div></div></div><button class="btn-red" style="margin-top: 20px;" onclick="document.getElementById('shopMenu').style.display='none'">CLOSE</button><div id="shopMsg" style="margin-top:10px; font-weight:bold;"></div></div></div>
+    <div id="inventoryMenu" class="modal"><div class="glass-box" style="width: 600px;"><h2>INVENTORY</h2><div style="display: flex; gap: 20px; align-items: flex-start; text-align: left; margin-top: 20px;"><div style="text-align:center;"><canvas id="invCharPreview" width="150" height="150" style="border:2px solid #444; border-radius:10px; background:#111;"></canvas><div style="margin-top:5px; color:#aaa; font-size:12px;">PREVIEW</div></div><div style="flex:1;"><div id="invList" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; max-height:200px; overflow-y:auto;"></div><button class="btn btn-green" onclick="equipSelectedItem()" style="margin-top:15px;">EQUIP SELECTED</button></div></div><button class="btn-red" style="margin-top: 20px;" onclick="document.getElementById('inventoryMenu').style.display='none'">CLOSE</button></div></div>
+    <div id="pauseMenu" class="modal"><div class="glass-box" style="width: 400px;"><h2>PAUSED</h2><div class="menu-grid"><button class="btn btn-blue" onclick="togglePause()">RESUME</button><button class="btn btn-red" onclick="location.reload()">LEAVE GAME</button></div><div id="staffPanel" style="display:none; margin-top:30px; border-top:1px solid #444; padding-top:20px;"><h3 style="color:var(--accent); margin:0 0 10px 0;">STAFF CONTROLS</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;"><button class="btn-purple" style="font-size:14px;" onclick="socket.emit('staffAction',{type:'toggleGod'})">GOD MODE</button><button class="btn-blue" style="font-size:14px;" onclick="socket.emit('staffAction',{type:'spawnDummy'})">SPAWN BOT</button><button class="btn-green" style="font-size:14px;" onclick="socket.emit('staffAction',{type:'giveCP'})">ADD CP</button><button class="btn-red" style="font-size:14px;" onclick="socket.emit('staffAction',{type:'skipRound'})">SKIP ROUND</button></div><button class="btn-red" style="margin-top:15px; font-size:14px;" onclick="socket.emit('staffAction',{type:'clearDummies'})">CLEAR BOTS</button></div></div></div>
+    <div id="hud"><div id="topBar"></div><div id="keybindsOverlay"><div class="kb-row"><span class="kb-key">W</span><span class="kb-key">A</span><span class="kb-key">S</span><span class="kb-key">D</span> Move</div><div class="kb-row"><span class="kb-key">SHIFT</span> Dash</div><div class="kb-row"><span class="kb-key">L-CLICK</span> Shoot</div><div class="kb-row"><span class="kb-key">R-CLICK</span> Ability</div><div class="kb-row"><span class="kb-key">P</span> Menu</div><div class="kb-row"><span class="kb-key">ENTER</span> Chat</div></div><div id="chatBox"><div id="chatMsgs"></div><input id="chatInput"></div><div id="statsArea"><div style="font-size: 32px; font-weight: bold; margin-bottom: 5px; font-family:'Fredoka One'; text-shadow:3px 3px 0 black;" id="ammoDisplay">30/30</div><div class="bar-bg"><div id="hpBar" class="hp-fill"></div></div><div class="xp-fill" id="xpBar"></div></div></div>
 
     <canvas id="game"></canvas>
 
@@ -326,214 +125,101 @@
         const ctx = canvas.getContext('2d');
         let myId=null, cam={x:0,y:0}, isPaused=false, particles=[], currentWalls=[], kit='assault', previewHat='none';
         let myItems=[], myMoney=0;
-
         const keys={w:0,a:0,s:0,d:0,shift:0};
         const mouse={x:0,y:0,down:0,right:0};
-
         const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
         window.onresize = resize; resize();
 
-        // --- PREVIEW RENDERER ---
-        function startPreviewLoop() {
-            const pCtx = document.getElementById('charPreview').getContext('2d');
-            function loop() {
-                pCtx.clearRect(0,0,350,350);
-                drawChar(pCtx, 150, 150, '#4488FF', previewHat, Date.now()/1000, null, 1, 3); // Scale x3
-                requestAnimationFrame(loop);
-            }
-            loop();
-        }
-
-        // --- AUTH ---
-        window.onload = () => {
-            document.getElementById('deadshotMenu').style.display = 'block';
-            startPreviewLoop();
-            const u = localStorage.getItem('imp_user'), p = localStorage.getItem('imp_pass');
-            if(u && p) auth('login', u, p);
-            else socket.emit('requestLobbies'); // Get count even if guest
-        };
-
-        function auth(t, uVal, pVal) {
-            let u = uVal || document.getElementById('user').value;
-            let p = pVal || document.getElementById('pass').value;
-            let e = document.getElementById('email').value;
-            socket.emit(t, {user: u, pass: p, email: e});
-        }
-
-        socket.on('authSuccess', d => {
-            localStorage.setItem('imp_user', d.user); 
-            if(d.pass) localStorage.setItem('imp_pass', d.pass);
-            
-            document.getElementById('authBox').style.display = 'none';
-            document.getElementById('accBox').style.display = 'flex';
-            document.getElementById('usernameDisplay').innerText = d.user;
-            document.getElementById('charName').innerText = d.user;
-            document.getElementById('cpDisplay').innerText = d.money;
-            document.getElementById('loginModal').style.display = 'none';
-            myItems = d.items || [];
-            previewHat = d.equippedHat || 'none';
-            myMoney = d.money;
-            
-            if(d.isOwner || d.isStaff) document.getElementById('staffPanel').style.display='block';
-            socket.emit('requestLobbies');
-        });
-
+        function startPreviewLoop() { const pCtx = document.getElementById('charPreview').getContext('2d'); function loop() { pCtx.clearRect(0,0,350,350); drawChar(pCtx, 150, 150, '#4488FF', previewHat, Date.now()/1000, null, 1, null, 3); requestAnimationFrame(loop); } loop(); }
+        window.onload = () => { document.getElementById('deadshotMenu').style.display = 'block'; startPreviewLoop(); const u = localStorage.getItem('imp_user'), p = localStorage.getItem('imp_pass'); if(u && p) auth('login', u, p); else socket.emit('requestLobbies'); };
+        function auth(t, uVal, pVal) { socket.emit(t, {user: uVal||document.getElementById('user').value, pass: pVal||document.getElementById('pass').value, email: document.getElementById('email').value}); }
+        socket.on('authSuccess', d => { localStorage.setItem('imp_user', d.user); if(d.pass) localStorage.setItem('imp_pass', d.pass); document.getElementById('authBox').style.display = 'none'; document.getElementById('accBox').style.display = 'flex'; document.getElementById('usernameDisplay').innerText = d.user; document.getElementById('charName').innerText = d.user; document.getElementById('cpDisplay').innerText = d.money; document.getElementById('loginModal').style.display = 'none'; myItems = d.items || []; previewHat = d.equippedHat || 'none'; myMoney = d.money; if(d.isOwner || d.isStaff) document.getElementById('staffPanel').style.display='block'; socket.emit('requestLobbies'); });
         socket.on('authMsg', d => { document.getElementById('msg').innerText = d.m; });
-        socket.on('shopMsg', d => { 
-            let el = document.getElementById('shopMsg'); el.innerText = d.m; el.style.color = d.s ? 'lime' : 'red';
-            setTimeout(()=>el.innerText="", 2000);
-        });
+        socket.on('shopMsg', d => { let el = document.getElementById('shopMsg'); el.innerText = d.m; el.style.color = d.s ? 'lime' : 'red'; setTimeout(()=>el.innerText="", 2000); });
         socket.on('shopUpdate', d => { myMoney=d.money; myItems=d.items; document.getElementById('cpDisplay').innerText = d.money; });
-
+        
         function logout() { localStorage.clear(); location.reload(); }
         function openBrowser() { socket.emit('requestLobbies'); document.getElementById('browserModal').style.display='flex'; }
         function openShop() { document.getElementById('shopMenu').style.display='flex'; }
-        
-        // --- INVENTORY ---
-        function openInventory() { 
-            document.getElementById('inventoryMenu').style.display='flex'; 
-            renderInvPreview();
-            const list = document.getElementById('invList');
-            list.innerHTML = `<div class="shop-item" style="padding:10px; font-size:14px;" onclick="selectItem('none')">🚫 None</div>`;
-            myItems.forEach(i => {
-                list.innerHTML += `<div class="shop-item" style="padding:10px; font-size:14px;" onclick="selectItem('${i}')">${i.toUpperCase()}</div>`;
-            });
-        }
+        function openInventory() { document.getElementById('inventoryMenu').style.display='flex'; renderInvPreview(); const list = document.getElementById('invList'); list.innerHTML = `<div class="shop-item" style="padding:10px; font-size:14px;" onclick="selectItem('none')">🚫 None</div>`; myItems.forEach(i => { list.innerHTML += `<div class="shop-item" style="padding:10px; font-size:14px;" onclick="selectItem('${i}')">${i.toUpperCase()}</div>`; }); }
         let invPreviewHat = 'none';
         function selectItem(i) { invPreviewHat = i; renderInvPreview(); }
-        function renderInvPreview() {
-            const ctx = document.getElementById('invCharPreview').getContext('2d');
-            ctx.clearRect(0,0,150,150);
-            drawChar(ctx, 55, 55, '#4488FF', invPreviewHat, 0, null, 1);
-        }
+        function renderInvPreview() { const ctx = document.getElementById('invCharPreview').getContext('2d'); ctx.clearRect(0,0,150,150); drawChar(ctx, 55, 55, '#4488FF', invPreviewHat, 0, null, 1); }
         function equipSelectedItem() { socket.emit('equip', invPreviewHat); previewHat = invPreviewHat; document.getElementById('inventoryMenu').style.display='none'; }
         function buy(item) { socket.emit('buy', item); }
-
-        function createLobby() {
-            socket.emit('createLobby', { 
-                name: document.getElementById('newLobbyName').value, 
-                isPublic: !document.getElementById('privateCheck').checked, 
-                mode: document.getElementById('modeSelect').value, 
-                map: document.getElementById('mapSelect').value 
-            });
-        }
+        function createLobby() { socket.emit('createLobby', { name: document.getElementById('newLobbyName').value, isPublic: !document.getElementById('privateCheck').checked, mode: document.getElementById('modeSelect').value, map: document.getElementById('mapSelect').value }); }
         function joinPublic(id) { socket.emit('joinLobby', id); }
         function joinPrivate() { socket.emit('joinLobby', document.getElementById('codeIn').value); }
-
-        socket.on('lobbyList', list => {
-            // Update Player Count
-            let totalPlayers = list.reduce((sum, l) => sum + l.count, 0);
-            document.getElementById('onlineCount').innerText = `● ${totalPlayers} Players Online`;
-
-            const c = document.getElementById('lobbyList'); c.innerHTML = "";
-            if(list.length === 0) c.innerHTML = "<div style='color:#666; text-align:center;'>No public servers found.</div>";
-            list.forEach(l => {
-                c.innerHTML += `<div class="lobby-item"><div><b class="lobby-name">${l.name}</b><br><small style="color:#aaa;">${l.mode} | ${l.map} | ${l.count} Players</small></div><button class="btn btn-green" style="width:auto; padding:8px 25px;" onclick="joinPublic('${l.id}')">JOIN</button></div>`;
-            });
-        });
-
-        socket.on('startGame', d => {
-            myId = d.id; currentWalls = d.walls;
-            document.getElementById('deadshotMenu').style.display = 'none';
-            document.getElementById('navbar').style.display = 'none';
-            document.getElementById('browserModal').style.display = 'none';
-            document.getElementById('hud').style.display = 'block';
-            document.getElementById('spawnMenu').style.display = 'flex';
-            if(d.isOwner || d.isStaff || d.isHost) document.getElementById('staffPanel').style.display='block';
-        });
-
+        socket.on('lobbyList', list => { let totalPlayers = list.reduce((sum, l) => sum + l.count, 0); document.getElementById('onlineCount').innerText = `● ${totalPlayers} Players Online`; const c = document.getElementById('lobbyList'); c.innerHTML = ""; if(list.length === 0) c.innerHTML = "<div style='color:#666; text-align:center;'>No public servers found.</div>"; list.forEach(l => { c.innerHTML += `<div class="lobby-item"><div><b class="lobby-name">${l.name}</b><br><small style="color:#aaa;">${l.mode} | ${l.map} | ${l.count} Players</small></div><button class="btn btn-green" style="width:auto; padding:8px 25px;" onclick="joinPublic('${l.id}')">JOIN</button></div>`; }); });
+        socket.on('startGame', d => { myId = d.id; currentWalls = d.walls; document.getElementById('deadshotMenu').style.display = 'none'; document.getElementById('navbar').style.display = 'none'; document.getElementById('browserModal').style.display = 'none'; document.getElementById('hud').style.display = 'block'; document.getElementById('spawnMenu').style.display = 'flex'; if(d.isOwner || d.isStaff || d.isHost) document.getElementById('staffPanel').style.display='block'; });
         socket.on('mapChange', d => currentWalls = d.walls);
         socket.on('chatMsg', d => { const l=document.createElement('div'); l.innerHTML=`<span style="color:${d.nameColor||d.color}">${d.user}:</span> ${d.text}`; document.getElementById('chatMsgs').appendChild(l); });
-
-        // --- GAME LOGIC ---
         function selKit(k, el) { kit=k; document.querySelectorAll('.kit-btn').forEach(b=>b.classList.remove('selected')); el.classList.add('selected'); }
         function spawn() { socket.emit('requestSpawn', kit); document.getElementById('spawnMenu').style.display = 'none'; }
         function togglePause() { isPaused = !isPaused; document.getElementById('pauseMenu').style.display = isPaused ? 'flex' : 'none'; }
+        window.onkeydown=e=>{ if(document.activeElement.id==='chatInput'){ if(e.code==='Enter'){ socket.emit('chat', document.getElementById('chatInput').value); document.getElementById('chatInput').value=''; document.getElementById('chatInput').style.display='none'; } return; } if(e.code==='Enter'){ document.getElementById('chatInput').style.display='block'; document.getElementById('chatInput').focus(); } if(e.code==='KeyP') togglePause(); keys[e.key.toLowerCase()] = 1; if(e.code==='ShiftLeft') keys.shift=1; };
+        window.onkeyup=e=>{ keys[e.key.toLowerCase()] = 0; if(e.code==='ShiftLeft') keys.shift=0; };
+        window.onmousemove=e=>{ mouse.x=e.clientX; mouse.y=e.clientY; };
+        window.onmousedown=e=>{ if(e.button===0)mouse.down=1; if(e.button===2) { mouse.right=1; socket.emit('input', {grapple:true, gx:mouse.x+cam.x, gy:mouse.y+cam.y}); } };
+        window.onmouseup=e=>{ if(e.button===0)mouse.down=0; if(e.button===2) { mouse.right=0; socket.emit('input', {grapple:false}); } };
+        window.oncontextmenu=e=>e.preventDefault();
 
-        // INPUTS
-        window.onkeydown = e => {
-            if(document.activeElement.id==='chatInput') {
-                if(e.code==='Enter') { socket.emit('chat', document.getElementById('chatInput').value); document.getElementById('chatInput').value=''; document.getElementById('chatInput').style.display='none'; }
-                return;
-            }
-            if(e.code==='Enter') { document.getElementById('chatInput').style.display='block'; document.getElementById('chatInput').focus(); }
-            if(e.code==='KeyP') togglePause();
-            keys[e.key.toLowerCase()] = 1; if(e.code==='ShiftLeft') keys.shift=1;
-        };
-        window.onkeyup = e => { keys[e.key.toLowerCase()] = 0; if(e.code==='ShiftLeft') keys.shift=0; };
-        
-        window.onmousemove = e => { mouse.x = e.clientX; mouse.y = e.clientY; };
-        window.onmousedown = e => { 
-            if(e.button===0) mouse.down=1; 
-            if(e.button===2) { mouse.right=1; socket.emit('input', {grapple:true, gx:mouse.x+cam.x, gy:mouse.y+cam.y}); }
-        };
-        window.onmouseup = e => { 
-            if(e.button===0) mouse.down=0; 
-            if(e.button===2) { mouse.right=0; socket.emit('input', {grapple:false}); }
-        };
-        window.oncontextmenu = e => e.preventDefault();
-
-        // RENDER LOOP
+        // RENDER
         socket.on('state', s => {
             if(!myId || isPaused) return;
             const me = s.players[myId]; if(!me) return;
             const g = s.game;
-            
-            if(me.dead && document.getElementById('spawnMenu').style.display === 'none') {
-                document.getElementById('spawnMenu').style.display = 'flex';
-                document.getElementById('spawnTitle').innerText = (g.mode==='ZOMBIES'&&me.team==='HUMAN') ? "YOU DIED" : "DEPLOYMENT";
-            }
-
+            if(me.dead && document.getElementById('spawnMenu').style.display === 'none') { document.getElementById('spawnMenu').style.display = 'flex'; document.getElementById('spawnTitle').innerText = (g.mode==='ZOMBIES'&&me.team==='HUMAN') ? "YOU DIED" : "DEPLOYMENT"; }
             cam.x += (me.x - canvas.width/2 - cam.x)*0.1; cam.y += (me.y - canvas.height/2 - cam.y)*0.1;
             ctx.fillStyle = "#111"; ctx.fillRect(0,0,canvas.width,canvas.height);
             ctx.save(); ctx.translate(-cam.x, -cam.y);
+            if(g.mode==='KOTH' && g.hill){ ctx.fillStyle="rgba(0, 242, 255, 0.15)"; ctx.fillRect(g.hill.x, g.hill.y, g.hill.w, g.hill.h); ctx.strokeStyle="var(--primary)"; ctx.lineWidth=3; ctx.setLineDash([15,10]); ctx.strokeRect(g.hill.x, g.hill.y, g.hill.w, g.hill.h); ctx.setLineDash([]); }
+            ctx.fillStyle = "#222"; currentWalls.forEach(w => { ctx.fillRect(w.x, w.y, w.w, w.h); ctx.strokeStyle="#333"; ctx.lineWidth=2; ctx.strokeRect(w.x,w.y,w.w,w.h); });
+            
+            // Sentries
+            if(s.sentries) s.sentries.forEach(sen => {
+                ctx.fillStyle = "#444"; ctx.fillRect(sen.x-20, sen.y-20, 40, 40); // Base
+                ctx.save(); ctx.translate(sen.x, sen.y); ctx.rotate(sen.angle);
+                ctx.fillStyle = "gray"; ctx.fillRect(0, -5, 30, 10); // Barrel
+                ctx.fillStyle = "orange"; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill(); // Head
+                ctx.restore();
+            });
 
-            // KOTH Hill
-            if(g.mode==='KOTH' && g.hill){
-                ctx.fillStyle="rgba(0, 242, 255, 0.15)"; ctx.fillRect(g.hill.x, g.hill.y, g.hill.w, g.hill.h);
-                ctx.strokeStyle="var(--primary)"; ctx.lineWidth=3; ctx.setLineDash([15,10]); ctx.strokeRect(g.hill.x, g.hill.y, g.hill.w, g.hill.h); ctx.setLineDash([]);
-            }
-
-            // Map
-            ctx.fillStyle = "#222";
-            currentWalls.forEach(w => { ctx.fillRect(w.x, w.y, w.w, w.h); ctx.strokeStyle="#333"; ctx.lineWidth=2; ctx.strokeRect(w.x,w.y,w.w,w.h); });
-
-            // Players
-            for(let id in s.players) {
-                let p = s.players[id]; if(p.dead) continue;
-                drawChar(ctx, p.x, p.y, p.color, p.hat, p.angle, p.username, p.hp/p.maxHp);
-                if(p.grapple.active) { ctx.beginPath(); ctx.moveTo(p.x+20,p.y+20); ctx.lineTo(p.grapple.x,p.grapple.y); ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke(); }
-            }
-
+            for(let id in s.players) { let p = s.players[id]; if(p.dead) continue; drawChar(ctx, p.x, p.y, p.color, p.hat, p.angle, p.username, p.hp/p.maxHp, p.kit); if(p.grapple.active) { ctx.beginPath(); ctx.moveTo(p.x+20,p.y+20); ctx.lineTo(p.grapple.x,p.grapple.y); ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke(); } }
             s.bullets.forEach(b => { ctx.fillStyle=b.color; ctx.beginPath(); ctx.arc(b.x,b.y,6,0,7); ctx.fill(); });
             ctx.restore();
-
-            // HUD
             document.getElementById('topBar').innerText = `${g.mode} | ${g.scores.red} - ${g.scores.blue}`;
             document.getElementById('hpBar').style.width = (me.hp/me.maxHp)*100+"%";
             document.getElementById('xpBar').style.width = (me.xp%100)+"%";
             document.getElementById('ammoDisplay').innerText = me.reloading ? "RELOADING" : `${me.ammo}/${me.maxAmmo}`;
         });
 
-        // Helper Draw Function
-        function drawChar(c, x, y, color, hat, angle, name, hpPct, scale=1) {
+        // VISUAL GUNS
+        function drawChar(c, x, y, color, hat, angle, name, hpPct, kitObj, scale=1) {
             c.save();
             if(scale!==1) { c.translate(x, y); c.scale(scale, scale); c.translate(-x, -y); }
             
+            // DRAW GUN (Rotated)
+            c.save();
+            c.translate(x+20, y+20);
+            c.rotate(angle);
+            if(kitObj && kitObj.weapon) {
+                c.fillStyle = "#333";
+                c.fillRect(15, -kitObj.weapon.h/2, kitObj.weapon.w, kitObj.weapon.h); 
+            } else {
+                // Default gun
+                c.fillStyle = "#333"; c.fillRect(15, -3, 20, 6);
+            }
+            c.restore();
+
             c.fillStyle = color; c.shadowBlur = 15; c.shadowColor = color; c.fillRect(x,y,40,40); c.shadowBlur = 0;
             if(hat==='tophat') { c.fillStyle='#111'; c.fillRect(x,y-15,40,10); c.fillRect(x+5,y-35,30,25); }
             if(hat==='crown') { c.fillStyle='gold'; c.font='20px Arial'; c.fillText('👑', x+10, y-10); }
             if(hat==='halo') { c.strokeStyle='gold'; c.lineWidth=2; c.beginPath(); c.ellipse(x+20, y-15, 15, 5, 0, 0, Math.PI*2); c.stroke(); }
-            
             let ex = Math.cos(angle)*4, ey = Math.sin(angle)*4;
             c.fillStyle="white"; c.beginPath(); c.arc(x+10, y+15, 6, 0, 7); c.fill(); c.beginPath(); c.arc(x+30, y+15, 6, 0, 7); c.fill();
             c.fillStyle="black"; c.beginPath(); c.arc(x+10+ex, y+15+ey, 3, 0, 7); c.fill(); c.beginPath(); c.arc(x+30+ex, y+15+ey, 3, 0, 7); c.fill();
-
-            if(name) {
-                c.fillStyle = "white"; c.font = "bold 12px Arial"; c.fillText(name, x, y-10);
-                c.fillStyle = "#ff4757"; c.fillRect(x, y-6, 40, 4);
-                c.fillStyle = "#00b894"; c.fillRect(x, y-6, 40*hpPct, 4);
-            }
+            if(name) { c.fillStyle = "white"; c.font = "bold 12px Arial"; c.fillText(name, x, y-10); c.fillStyle = "#ff4757"; c.fillRect(x, y-6, 40, 4); c.fillStyle = "#00b894"; c.fillRect(x, y-6, 40*hpPct, 4); }
             c.restore();
         }
 

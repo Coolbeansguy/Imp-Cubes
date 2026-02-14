@@ -16,10 +16,9 @@ const WALLS = [
     { x: 0, y: -50, w: MAP_SIZE.x, h: 50 }, { x: 0, y: MAP_SIZE.y, w: MAP_SIZE.x, h: 50 }
 ];
 
-// NEW WEAPON DEFINITIONS
 const WEAPONS = {
     pistol:  { name: 'Pistol',  damage: 15, speed: 18, cooldown: 20, size: 5, color: 'gold', count: 1, spread: 0 },
-    shotgun: { name: 'Shotgun', damage: 8,  speed: 15, cooldown: 50, size: 4, color: 'gray', count: 5, spread: 0.3 }, // Shoots 5 bullets
+    shotgun: { name: 'Shotgun', damage: 8,  speed: 15, cooldown: 50, size: 4, color: 'gray', count: 5, spread: 0.3 },
     ak47:    { name: 'AK-47',   damage: 12, speed: 22, cooldown: 8,  size: 4, color: 'lime', count: 1, spread: 0.1 },
     sniper:  { name: 'Sniper',  damage: 90, speed: 45, cooldown: 90, size: 4, color: 'cyan', count: 1, spread: 0 },
     rpg:     { name: 'RPG',     damage: 60, speed: 10, cooldown: 80, size: 12, color: 'orange', count: 1, spread: 0 }
@@ -48,7 +47,6 @@ function getSafeSpawn() {
 
 io.on('connection', (socket) => {
     
-    // AUTH
     socket.on('signup', (data) => {
         if (userDB[data.user]) return socket.emit('authMsg', { success: false, msg: "Taken!" });
         userDB[data.user] = { password: data.pass, email: data.email, money: 0, hat: 'none' };
@@ -67,8 +65,6 @@ io.on('connection', (socket) => {
     function joinGame(socket, username, stats, color) {
         const spawn = getSafeSpawn();
         const isOwner = (stats.email === 'raidenrmarks12@gmail.com');
-
-        // GIVE WEAPONS: Everyone gets Pistol, Shotgun, AK. Owner gets RPG/Sniper too.
         let inventory = ['pistol', 'shotgun', 'ak47'];
         if (isOwner) inventory.push('sniper', 'rpg');
 
@@ -80,7 +76,7 @@ io.on('connection', (socket) => {
             color: isOwner ? '#FFD700' : (color || '#4488FF'),
             username: username,
             inventory: inventory,
-            activeWeapon: 0, // Index of current weapon
+            activeWeapon: 0,
             weapon: WEAPONS['pistol'],
             money: stats.money,
             hat: stats.hat,
@@ -91,7 +87,14 @@ io.on('connection', (socket) => {
         socket.emit('startGame', { mapSize: MAP_SIZE, id: socket.id });
     }
 
-    // SWITCH WEAPON (Keys 1-5)
+    // NEW: RENAME EVENT
+    socket.on('rename', (newName) => {
+        const p = players[socket.id];
+        if(p && newName.length > 0 && newName.length < 15) {
+            p.username = newName;
+        }
+    });
+
     socket.on('switch', (index) => {
         const p = players[socket.id];
         if(!p || !p.inventory[index]) return;
@@ -105,39 +108,28 @@ io.on('connection', (socket) => {
 
         p.angle = data.angle;
 
-        // --- NEW DASH MOVEMENT (Shift) ---
+        // DASH
         if (data.dash && p.dashCooldown <= 0) {
-            // Push player hard in movement direction
             const speed = 25; 
             if (data.up) p.vy -= speed;
             if (data.down) p.vy += speed;
             if (data.left) p.vx -= speed;
             if (data.right) p.vx += speed;
-            
-            // If standing still, dash towards mouse
             if(!data.up && !data.down && !data.left && !data.right) {
-                p.vx = Math.cos(p.angle) * speed;
-                p.vy = Math.sin(p.angle) * speed;
+                p.vx = Math.cos(p.angle) * speed; p.vy = Math.sin(p.angle) * speed;
             }
-            p.dashCooldown = 60; // 1 Second cooldown
+            p.dashCooldown = 60;
         } else {
-            // Normal Walking
             let speed = 0.8;
-            if (data.up) p.vy -= speed;
-            if (data.down) p.vy += speed;
-            if (data.left) p.vx -= speed;
-            if (data.right) p.vx += speed;
+            if (data.up) p.vy -= speed; if (data.down) p.vy += speed;
+            if (data.left) p.vx -= speed; if (data.right) p.vx += speed;
         }
 
-        // SHOOTING (Handles Shotgun Spread)
         if (data.shoot && (!p.shootTimer || p.shootTimer <= 0)) {
             p.shootTimer = p.weapon.cooldown;
-            
             const count = p.weapon.count || 1;
             const spread = p.weapon.spread || 0;
-
             for(let i=0; i<count; i++) {
-                // Calculate spread angle
                 const angleOffset = (Math.random() - 0.5) * spread;
                 bullets.push({
                     x: p.x + 20, y: p.y + 20,
@@ -154,7 +146,6 @@ io.on('connection', (socket) => {
         } else if(!data.grapple) p.grapple.active = false;
     });
 
-    // Buy logic...
     socket.on('buy', (item) => {
         const p = players[socket.id];
         if (!p || !userDB[p.username]) return;
@@ -169,12 +160,11 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => delete players[socket.id]);
 });
 
-// GAME LOOP
 setInterval(() => {
     for (const id in players) {
         const p = players[id];
         p.x += p.vx; p.y += p.vy;
-        p.vx *= 0.9; p.vy *= 0.9; // Friction
+        p.vx *= 0.9; p.vy *= 0.9;
         if (p.shootTimer > 0) p.shootTimer--;
         if (p.dashCooldown > 0) p.dashCooldown--;
         

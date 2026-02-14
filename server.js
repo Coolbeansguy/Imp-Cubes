@@ -6,9 +6,9 @@ const fs = require('fs');
 
 app.use(express.static('public'));
 
-const ROUND_TIME = 1800; // 3 Minutes
-const VOTE_TIME = 150;
-const END_TIME = 100;
+const ROUND_TIME = 10800; // 3 Minutes
+const VOTE_TIME = 15000;
+const END_TIME = 10000;
 const DB_FILE = 'database.json';
 
 const MAPS = [

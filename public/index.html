@@ -7,12 +7,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700&display=swap" rel="stylesheet">
     <style>
-        /* COLOR PALETTE UPDATE */
         :root { 
             --primary: #00f2ff; /* Neon Cyan */
             --secondary: #ff0055; /* Neon Pink */
             --accent: #ffee00; /* Gold */
-            --glass: rgba(20, 20, 35, 0.9);
+            --glass: rgba(15, 15, 25, 0.95);
             --glass-border: rgba(255, 255, 255, 0.15);
         }
         
@@ -21,103 +20,116 @@
 
         /* ANIMATIONS */
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        @keyframes slideRight { from { transform: translateX(-50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(0, 242, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0); } }
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0.4); } 70% { box-shadow: 0 0 0 20px rgba(0, 242, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0); } }
 
         #backdrop { position: absolute; width: 100%; height: 100%; background: rgba(10, 10, 20, 0.85); backdrop-filter: blur(8px); z-index: -1; animation: fadeIn 1s; }
 
-        /* TOP NAV */
-        #navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background: rgba(0,0,0,0.4); border-bottom: 1px solid var(--glass-border); animation: slideRight 0.5s; }
-        .nav-logo { font-family: 'Fredoka One'; font-size: 32px; color: var(--primary); text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px var(--primary); }
-        .nav-links { display: flex; gap: 20px; }
-        .nav-btn { background: transparent; border: none; color: #ccc; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.3s; text-transform: uppercase; font-family: 'Fredoka One'; }
-        .nav-btn:hover { color: white; transform: scale(1.1); text-shadow: 0 0 5px white; }
-        .account-box { display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.05); padding: 8px 20px; border-radius: 30px; border: 1px solid var(--glass-border); }
+        /* BIGGER NAV */
+        #navbar { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; background: rgba(0,0,0,0.6); border-bottom: 1px solid var(--glass-border); }
+        .nav-logo { font-family: 'Fredoka One'; font-size: 40px; color: var(--primary); text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 15px var(--primary); }
+        .nav-links { display: flex; gap: 30px; }
+        .nav-btn { background: transparent; border: none; color: #ccc; font-weight: bold; cursor: pointer; font-size: 20px; transition: 0.3s; text-transform: uppercase; font-family: 'Fredoka One'; }
+        .nav-btn:hover { color: white; transform: scale(1.1); text-shadow: 0 0 10px white; }
+        .account-box { display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.08); padding: 10px 25px; border-radius: 40px; border: 1px solid var(--glass-border); font-size: 18px; }
         .currency { color: var(--accent); font-weight: bold; font-family: 'Fredoka One'; }
 
-        /* MAIN MENU */
-        #deadshotMenu { display: none; height: calc(100vh - 80px); position: relative; }
+        /* BIGGER MAIN MENU */
+        #deadshotMenu { display: none; height: calc(100vh - 100px); position: relative; }
         
         .center-char { 
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-            text-align: center; animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            text-align: center; animation: popIn 0.5s ease-out; 
         }
         
-        #charPreview { filter: drop-shadow(0 0 20px rgba(0, 242, 255, 0.3)); transition: transform 0.3s; }
+        #charPreview { filter: drop-shadow(0 0 30px rgba(0, 242, 255, 0.2)); transition: transform 0.3s; width: 350px; height: 350px; }
         #charPreview:hover { transform: scale(1.05); }
 
         .play-btn-large { 
             background: linear-gradient(135deg, var(--primary), #00a8ff); border: none; 
-            padding: 15px 80px; font-size: 36px; color: #000; font-family: 'Fredoka One'; 
-            border-radius: 50px; cursor: pointer; margin-top: 25px; text-transform: uppercase;
-            animation: pulse 2s infinite; transition: all 0.2s;
+            padding: 20px 100px; font-size: 48px; color: #000; font-family: 'Fredoka One'; 
+            border-radius: 60px; cursor: pointer; margin-top: 30px; text-transform: uppercase;
+            animation: pulse 2s infinite; transition: all 0.2s; box-shadow: 0 10px 30px rgba(0, 242, 255, 0.3);
         }
-        .play-btn-large:hover { transform: scale(1.05) translateY(-2px); filter: brightness(1.2); }
-        .play-btn-large:active { transform: scale(0.95); }
-
+        .play-btn-large:hover { transform: scale(1.05) translateY(-3px); filter: brightness(1.2); }
+        
         .side-panel { 
-            position: absolute; top: 20%; right: 50px; width: 280px; 
-            background: var(--glass); padding: 25px; border-radius: 12px; 
-            border: 1px solid var(--glass-border); animation: slideRight 0.8s;
+            position: absolute; top: 20%; right: 50px; width: 350px; 
+            background: var(--glass); padding: 30px; border-radius: 16px; 
+            border: 1px solid var(--glass-border); animation: popIn 0.8s;
         }
-        .panel-title { font-family: 'Fredoka One'; margin-bottom: 15px; font-size: 20px; color: var(--secondary); text-transform: uppercase; }
+        .panel-title { font-family: 'Fredoka One'; margin-bottom: 20px; font-size: 24px; color: var(--secondary); text-transform: uppercase; border-bottom: 2px solid #333; padding-bottom: 10px; }
 
-        /* MODALS */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        /* MODALS (BIGGER UI) */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
         .glass-box { 
-            background: var(--glass); border: 1px solid var(--glass-border); padding: 30px; 
-            border-radius: 16px; width: 450px; text-align: center; position: relative; 
-            box-shadow: 0 0 50px rgba(0,0,0,0.5); animation: popIn 0.3s;
+            background: var(--glass); border: 1px solid var(--glass-border); padding: 40px; 
+            border-radius: 20px; text-align: center; position: relative; 
+            box-shadow: 0 0 60px rgba(0,0,0,0.7); animation: popIn 0.3s;
         }
         
-        /* INPUTS & BUTTONS */
         input, select { 
-            width: 100%; padding: 15px; margin-bottom: 12px; background: rgba(0,0,0,0.3); 
-            border: 2px solid #444; color: white; border-radius: 8px; box-sizing: border-box; 
-            font-family: 'Nunito', sans-serif; transition: 0.3s;
+            width: 100%; padding: 18px; margin-bottom: 15px; background: rgba(0,0,0,0.4); 
+            border: 2px solid #444; color: white; border-radius: 10px; box-sizing: border-box; 
+            font-family: 'Nunito', sans-serif; font-size: 16px; transition: 0.3s;
         }
-        input:focus { border-color: var(--primary); box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); outline: none; }
+        input:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(0, 242, 255, 0.2); outline: none; }
         
-        .btn { width: 100%; padding: 12px; margin-top: 5px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: 'Fredoka One'; text-transform: uppercase; font-size: 16px; transition: 0.2s; }
-        .btn:hover { transform: translateY(-2px); filter: brightness(1.2); }
+        .btn { width: 100%; padding: 15px; margin-top: 8px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-family: 'Fredoka One'; text-transform: uppercase; font-size: 18px; transition: 0.2s; }
+        .btn:hover { transform: translateY(-3px); filter: brightness(1.2); }
         .btn-green { background: var(--primary); color: #000; }
         .btn-red { background: var(--secondary); color: white; }
         .btn-purple { background: #9b59b6; color: white; }
 
-        /* SERVER BROWSER */
-        #lobbyList { height: 350px; overflow-y: auto; background: rgba(0,0,0,0.3); border-radius: 8px; margin-bottom: 20px; padding: 10px; }
-        .lobby-item { display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid #333; align-items: center; transition: 0.2s; border-radius: 4px; }
-        .lobby-item:hover { background: rgba(255,255,255,0.05); transform: translateX(5px); }
+        /* SERVER BROWSER - FULL SCREEN FEEL */
+        #browserBox { width: 85%; max-width: 1400px; height: 80vh; display: flex; flex-direction: column; }
+        #lobbyContainer { display: flex; gap: 30px; text-align: left; height: 100%; overflow: hidden; }
+        #lobbyList { flex: 2; background: rgba(0,0,0,0.3); border-radius: 12px; overflow-y: auto; padding: 15px; height: 100%; }
+        #createPanel { flex: 1; border-left: 2px solid #333; padding-left: 30px; display: flex; flex-direction: column; justify-content: center; }
+        
+        .lobby-item { display: flex; justify-content: space-between; padding: 20px; border-bottom: 1px solid #333; align-items: center; transition: 0.2s; border-radius: 8px; background: rgba(255,255,255,0.03); margin-bottom: 10px; }
+        .lobby-item:hover { background: rgba(255,255,255,0.08); transform: translateX(5px); border-left: 4px solid var(--primary); }
+        .lobby-name { font-size: 20px; font-weight: bold; color: white; }
 
-        /* HUD */
+        /* BIGGER HUD */
         #hud { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        #topBar { position: absolute; top: 15px; width: 100%; text-align: center; font-family: 'Fredoka One'; font-size: 28px; text-shadow: 2px 2px 0 #000; letter-spacing: 1px; }
+        #topBar { position: absolute; top: 20px; width: 100%; text-align: center; font-family: 'Fredoka One'; font-size: 32px; text-shadow: 3px 3px 0 #000; letter-spacing: 2px; }
         
         #keybindsOverlay {
-            position: absolute; bottom: 20px; right: 20px; text-align: right;
-            font-family: 'Fredoka One'; font-size: 14px; opacity: 0.7;
+            position: absolute; bottom: 30px; right: 30px; text-align: right;
+            font-family: 'Fredoka One'; font-size: 16px; opacity: 0.8;
         }
-        .kb-row { margin-bottom: 5px; text-shadow: 1px 1px 0 #000; }
-        .kb-key { background: white; color: black; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-right: 5px; box-shadow: 0 2px 0 #999; }
+        .kb-row { margin-bottom: 8px; text-shadow: 1px 1px 0 #000; }
+        .kb-key { background: white; color: black; padding: 4px 8px; border-radius: 6px; display: inline-block; margin-right: 8px; box-shadow: 0 3px 0 #999; }
 
-        #statsArea { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 350px; text-align: center; }
-        .bar-bg { height: 10px; background: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; margin-top: 5px; border: 1px solid #333; }
-        .hp-fill { height: 100%; background: var(--secondary); width: 100%; transition: width 0.1s; box-shadow: 0 0 10px var(--secondary); }
-        .xp-fill { height: 4px; background: var(--primary); width: 0%; margin-top: 5px; border-radius: 2px; }
+        #statsArea { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); width: 500px; text-align: center; }
+        .bar-bg { height: 16px; background: rgba(0,0,0,0.6); border-radius: 8px; overflow: hidden; margin-top: 8px; border: 2px solid #444; }
+        .hp-fill { height: 100%; background: var(--secondary); width: 100%; transition: width 0.1s; box-shadow: 0 0 15px var(--secondary); }
+        .xp-fill { height: 6px; background: var(--primary); width: 0%; margin-top: 8px; border-radius: 3px; }
 
-        #chatBox { position: absolute; bottom: 20px; left: 20px; width: 320px; pointer-events: auto; }
-        #chatMsgs { height: 180px; overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-end; font-size: 14px; text-shadow: 1px 1px 2px black; font-weight: bold; mask-image: linear-gradient(to top, black 80%, transparent 100%); }
-        #chatInput { background: rgba(0,0,0,0.6); display: none; border: 1px solid #555; border-radius: 4px; }
+        #chatBox { position: absolute; bottom: 30px; left: 30px; width: 400px; pointer-events: auto; }
+        #chatMsgs { height: 250px; overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-end; font-size: 16px; text-shadow: 1px 1px 2px black; font-weight: bold; mask-image: linear-gradient(to top, black 80%, transparent 100%); }
+        #chatInput { background: rgba(0,0,0,0.6); display: none; border: 2px solid #555; border-radius: 6px; font-size: 16px; }
 
         /* KITS */
-        .kit-container { display: flex; gap: 8px; justify-content: center; margin-bottom: 20px; }
-        .kit-btn { background: #222; color: #888; border: 2px solid transparent; padding: 12px; cursor: pointer; flex: 1; text-align: center; font-size: 13px; font-weight: bold; border-radius: 8px; font-family: 'Fredoka One'; transition: 0.2s; }
+        .kit-container { display: flex; gap: 10px; justify-content: center; margin-bottom: 25px; flex-wrap: wrap; }
+        .kit-btn { background: #222; color: #888; border: 2px solid transparent; padding: 15px 25px; cursor: pointer; text-align: center; font-size: 14px; font-weight: bold; border-radius: 10px; font-family: 'Fredoka One'; transition: 0.2s; min-width: 100px; }
         .kit-btn:hover { background: #333; color: white; }
-        .kit-btn.selected { border-color: var(--primary); color: white; background: rgba(0, 242, 255, 0.15); box-shadow: 0 0 15px rgba(0, 242, 255, 0.2); transform: translateY(-3px); }
+        .kit-btn.selected { border-color: var(--primary); color: white; background: rgba(0, 242, 255, 0.15); box-shadow: 0 0 20px rgba(0, 242, 255, 0.3); transform: translateY(-5px); }
 
+        /* MISC */
+        .site-logo { width: 160px; height: 160px; border-radius: 30px; margin-bottom: 20px; box-shadow: 0 0 40px var(--primary); }
+        .logout-link { color: var(--secondary); font-size: 14px; cursor: pointer; text-decoration: underline; margin-top: auto; display: inline-block; pointer-events: auto; align-self: center; font-weight: bold; }
+        .toggle-cont { display: flex; align-items: center; gap: 15px; margin: 15px 0; font-size: 16px; }
+        input[type="checkbox"] { width: 20px; height: 20px; margin: 0; }
+        
         #pauseMenu { display: none; z-index: 2000; }
-        .staff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; border-top: 1px solid #444; padding-top: 20px; }
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+        
+        /* SHOP */
+        .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .shop-item { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border: 1px solid #444; cursor: pointer; text-align: center; font-size: 18px; }
+        .shop-item:hover { border-color: var(--primary); background: rgba(255,255,255,0.1); }
     </style>
 </head>
 <body>
@@ -128,70 +140,65 @@
         <div class="nav-links">
             <button class="nav-btn active">PLAY</button>
             <button class="nav-btn" onclick="openShop()">SHOP</button>
-            <button class="nav-btn" onclick="openInventory()">LOADOUT</button>
-        </div>
+            <button class="nav-btn" onclick="openInventory()">INVENTORY</button> </div>
         
         <div class="account-box" id="authBox">
-            <button class="btn-green" style="padding: 5px 20px; width: auto; font-size: 14px;" onclick="document.getElementById('loginModal').style.display='flex'">LOGIN</button>
+            <button class="btn-green" style="padding: 8px 30px; width: auto; font-size: 16px;" onclick="document.getElementById('loginModal').style.display='flex'">LOGIN</button>
         </div>
         
         <div class="account-box" id="accBox" style="display:none;">
             <span id="usernameDisplay" style="font-weight:bold;">Guest</span>
-            <span class="currency" style="color:var(--accent)">$ <span id="cpDisplay">0</span></span>
-            <button style="background:none; border:none; color:var(--secondary); cursor:pointer; font-size:12px; font-weight:bold; margin-left:10px;" onclick="logout()">LOGOUT</button>
+            <span class="currency">$ <span id="cpDisplay">0</span></span>
+            <button style="background:none; border:none; color:var(--secondary); cursor:pointer; font-size:14px; font-weight:bold; margin-left:10px;" onclick="logout()">LOGOUT</button>
         </div>
     </div>
 
     <div id="deadshotMenu">
         <div class="center-char">
-            <canvas id="charPreview" width="220" height="220"></canvas>
-            <h2 id="charName" style="margin: 15px 0; font-size: 24px; color:white;">Guest</h2>
+            <canvas id="charPreview" width="350" height="350"></canvas>
+            <h2 id="charName" style="margin: 20px 0; font-size: 32px; color:white; text-shadow: 0 0 10px black;">Guest</h2>
             <button class="play-btn-large" onclick="openBrowser()">PLAY NOW</button>
-            <div style="margin-top: 15px; color: var(--primary); font-size: 14px; font-weight:bold;">● 1587 Players Online</div>
+            <div id="onlineCount" style="margin-top: 20px; color: var(--primary); font-size: 18px; font-weight:bold; letter-spacing: 1px;">● Connecting...</div>
         </div>
 
         <div class="side-panel right-panel">
-            <div class="panel-title">LATEST UPDATES</div>
-            <div style="font-size: 13px; color: #ccc; line-height: 1.6;">
-                <b style="color:white;">> Update 2.0</b><br>
-                - New Neon UI<br>
-                - Fixed Grappling Hook<br>
-                - Added Juggernaut Mode<br>
-                - Towers Map Added<br>
+            <div class="panel-title">UPDATES</div>
+            <div style="font-size: 14px; color: #ccc; line-height: 1.8;">
+                <b style="color:white;">> Ultimate Update</b><br>
+                - Bigger, Bolder UI<br>
+                - New Inventory System<br>
+                - Juggernaut Mode<br>
+                - Admin Commands<br>
                 <br>
-                <b style="color:white;">> Coming Soon</b><br>
-                - Clan System<br>
-                - Ranked Mode
+                <b style="color:var(--primary);">> IMP CUBES</b>
             </div>
         </div>
     </div>
 
     <div id="loginModal" class="modal">
-        <div class="glass-box">
-            <h2>PLAYER LOGIN</h2>
+        <div class="glass-box" style="width: 400px;">
+            <img src="https://media.discordapp.net/attachments/1286433136804106282/1472114823369330689/image.png?ex=69916544&is=699013c4&hm=6e53418ccc28321ed6703073c2da8530a6e16e4680acae446d8a83c2372b6352" class="site-logo">
             <input id="user" placeholder="Username">
             <input id="pass" type="password" placeholder="Password">
             <input id="email" placeholder="Email (Admin Only)">
             <button class="btn btn-green" onclick="auth('login')">LOGIN</button>
             <button class="btn" style="background:#333; color:white;" onclick="auth('signup')">CREATE ACCOUNT</button>
-            <button class="btn" style="background:transparent; color:#888; margin-top:10px; font-size:12px;" onclick="document.getElementById('loginModal').style.display='none'">Cancel</button>
+            <button class="btn" style="background:transparent; color:#888; margin-top:10px; font-size:14px;" onclick="document.getElementById('loginModal').style.display='none'">Cancel</button>
             <div id="msg" style="margin-top:10px; color:var(--secondary); font-weight:bold;"></div>
         </div>
     </div>
 
     <div id="browserModal" class="modal">
-        <div class="glass-box" style="width: 800px;">
+        <div class="glass-box" id="browserBox">
             <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-                <h2 style="margin:0;">SERVER BROWSER</h2>
-                <button class="btn-red" style="width:auto; padding:5px 15px;" onclick="document.getElementById('browserModal').style.display='none'">CLOSE</button>
+                <h2 style="margin:0; font-size: 32px;">SERVER BROWSER</h2>
+                <button class="btn-red" style="width:auto; padding:10px 30px;" onclick="document.getElementById('browserModal').style.display='none'">CLOSE</button>
             </div>
             
-            <div style="display:flex; gap: 25px; text-align: left;">
-                <div style="flex: 2;">
-                    <div id="lobbyList">Loading...</div>
-                </div>
-                <div style="flex: 1; border-left: 2px solid #333; padding-left: 25px; display: flex; flex-direction: column;">
-                    <h3 style="color:var(--primary);">HOST GAME</h3>
+            <div id="lobbyContainer">
+                <div id="lobbyList">Loading...</div>
+                <div id="createPanel">
+                    <h3 style="color:var(--primary); font-size: 24px;">HOST GAME</h3>
                     <input id="newLobbyName" placeholder="Server Name">
                     <select id="modeSelect">
                         <option value="FFA">Free For All</option>
@@ -206,12 +213,13 @@
                         <option value="2">Towers</option>
                         <option value="3">Open Field</option>
                     </select>
+                    <div class="toggle-cont"><input type="checkbox" id="privateCheck"><label>Private Room</label></div>
                     <button class="btn btn-green" onclick="createLobby()">CREATE SERVER</button>
                     
-                    <h3 style="color:var(--primary); margin-top: 30px;">PRIVATE</h3>
-                    <div style="display:flex; gap:5px;">
+                    <h3 style="color:var(--primary); margin-top: 40px; font-size: 24px;">PRIVATE</h3>
+                    <div style="display:flex; gap:10px;">
                         <input id="codeIn" placeholder="CODE" style="text-transform:uppercase;">
-                        <button class="btn btn-blue" style="width:60px;" onclick="joinPrivate()">GO</button>
+                        <button class="btn btn-blue" style="width:80px;" onclick="joinPrivate()">GO</button>
                     </div>
                 </div>
             </div>
@@ -219,9 +227,9 @@
     </div>
 
     <div id="spawnMenu" class="modal">
-        <div class="glass-box" style="width: 500px;">
-            <h2 id="spawnTitle" style="color:var(--primary);">DEPLOYMENT</h2>
-            <p style="color:#aaa; font-size:14px; margin-bottom:20px;">Select your loadout.</p>
+        <div class="glass-box" style="width: 600px;">
+            <h2 id="spawnTitle" style="color:var(--primary); font-size: 40px;">DEPLOYMENT</h2>
+            <p style="color:#aaa; font-size:16px; margin-bottom:30px;">Select your loadout.</p>
             
             <div class="kit-container">
                 <div class="kit-btn selected" onclick="selKit('assault',this)">SOLDIER</div>
@@ -231,42 +239,59 @@
                 <div class="kit-btn" onclick="selKit('ninja',this)">NINJA</div>
             </div>
 
-            <button class="btn btn-green" style="font-size:20px; padding:15px;" onclick="spawn()">DEPLOY</button>
-            <button class="btn-red" style="margin-top:10px;" onclick="location.reload()">LEAVE MATCH</button>
+            <button class="btn btn-green" style="font-size:24px; padding:20px;" onclick="spawn()">DEPLOY</button>
+            <button class="btn-red" style="margin-top:15px;" onclick="location.reload()">LEAVE MATCH</button>
         </div>
     </div>
 
     <div id="shopMenu" class="modal">
-        <div class="glass-box" style="width: 500px;">
+        <div class="glass-box" style="width: 600px;">
             <h2>ITEM SHOP</h2>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin:20px 0;">
-                <div class="lobby-item" onclick="buy('tophat')"><div>🎩 Top Hat</div><div style="color:gold">500 CP</div></div>
-                <div class="lobby-item" onclick="buy('halo')"><div>😇 Halo</div><div style="color:gold">2500 CP</div></div>
-                <div class="lobby-item" onclick="buy('crown')"><div>👑 Crown</div><div style="color:gold">5000 CP</div></div>
-                <div class="lobby-item" onclick="buy('red_glow')"><div>🔴 Red Glow</div><div style="color:gold">1000 CP</div></div>
+            <div class="shop-grid">
+                <div class="shop-item" onclick="buy('tophat')"><div>🎩 Top Hat</div><div style="color:gold">500 CP</div></div>
+                <div class="shop-item" onclick="buy('halo')"><div>😇 Halo</div><div style="color:gold">2500 CP</div></div>
+                <div class="shop-item" onclick="buy('crown')"><div>👑 Crown</div><div style="color:gold">5000 CP</div></div>
+                <div class="shop-item" onclick="buy('red_glow')"><div>🔴 Red Glow</div><div style="color:gold">1000 CP</div></div>
             </div>
-            <button class="btn-red" onclick="document.getElementById('shopMenu').style.display='none'">CLOSE</button>
+            <button class="btn-red" style="margin-top: 20px;" onclick="document.getElementById('shopMenu').style.display='none'">CLOSE</button>
             <div id="shopMsg" style="margin-top:10px; font-weight:bold;"></div>
         </div>
     </div>
 
+    <div id="inventoryMenu" class="modal">
+        <div class="glass-box" style="width: 600px;">
+            <h2>INVENTORY</h2>
+            <div style="display: flex; gap: 20px; align-items: flex-start; text-align: left; margin-top: 20px;">
+                <div style="text-align:center;">
+                    <canvas id="invCharPreview" width="150" height="150" style="border:2px solid #444; border-radius:10px; background:#111;"></canvas>
+                    <div style="margin-top:5px; color:#aaa; font-size:12px;">PREVIEW</div>
+                </div>
+                <div style="flex:1;">
+                    <div id="invList" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; max-height:200px; overflow-y:auto;"></div>
+                    <button class="btn btn-green" onclick="equipSelectedItem()" style="margin-top:15px;">EQUIP SELECTED</button>
+                </div>
+            </div>
+            <button class="btn-red" style="margin-top: 20px;" onclick="document.getElementById('inventoryMenu').style.display='none'">CLOSE</button>
+        </div>
+    </div>
+
     <div id="pauseMenu" class="modal">
-        <div class="glass-box" style="width: 350px;">
+        <div class="glass-box" style="width: 400px;">
             <h2>PAUSED</h2>
             <div class="menu-grid">
                 <button class="btn btn-blue" onclick="togglePause()">RESUME</button>
                 <button class="btn btn-red" onclick="location.reload()">LEAVE GAME</button>
             </div>
             
-            <div id="staffPanel" style="display:none; margin-top:20px; border-top:1px solid #444; padding-top:15px;">
-                <h3 style="color:gold; margin:0 0 10px 0;">STAFF CONTROLS</h3>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                    <button class="btn-purple" style="font-size:12px;" onclick="socket.emit('staffAction',{type:'toggleGod'})">GOD MODE</button>
-                    <button class="btn-blue" style="font-size:12px;" onclick="socket.emit('staffAction',{type:'spawnDummy'})">SPAWN BOT</button>
-                    <button class="btn-green" style="font-size:12px;" onclick="socket.emit('staffAction',{type:'giveCP'})">ADD CP</button>
-                    <button class="btn-red" style="font-size:12px;" onclick="socket.emit('staffAction',{type:'skipRound'})">SKIP ROUND</button>
+            <div id="staffPanel" style="display:none; margin-top:30px; border-top:1px solid #444; padding-top:20px;">
+                <h3 style="color:var(--accent); margin:0 0 10px 0;">STAFF CONTROLS</h3>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <button class="btn-purple" style="font-size:14px;" onclick="socket.emit('staffAction',{type:'toggleGod'})">GOD MODE</button>
+                    <button class="btn-blue" style="font-size:14px;" onclick="socket.emit('staffAction',{type:'spawnDummy'})">SPAWN BOT</button>
+                    <button class="btn-green" style="font-size:14px;" onclick="socket.emit('staffAction',{type:'giveCP'})">ADD CP</button>
+                    <button class="btn-red" style="font-size:14px;" onclick="socket.emit('staffAction',{type:'skipRound'})">SKIP ROUND</button>
                 </div>
-                <button class="btn-red" style="margin-top:10px; font-size:12px;" onclick="socket.emit('staffAction',{type:'clearDummies'})">CLEAR BOTS</button>
+                <button class="btn-red" style="margin-top:15px; font-size:14px;" onclick="socket.emit('staffAction',{type:'clearDummies'})">CLEAR BOTS</button>
             </div>
         </div>
     </div>
@@ -286,7 +311,7 @@
         <div id="chatBox"><div id="chatMsgs"></div><input id="chatInput"></div>
         
         <div id="statsArea">
-            <div style="font-size: 24px; font-weight: bold; margin-bottom: 5px; font-family:'Fredoka One'; text-shadow:2px 2px 0 black;" id="ammoDisplay">30/30</div>
+            <div style="font-size: 32px; font-weight: bold; margin-bottom: 5px; font-family:'Fredoka One'; text-shadow:3px 3px 0 black;" id="ammoDisplay">30/30</div>
             <div class="bar-bg"><div id="hpBar" class="hp-fill"></div></div>
             <div class="xp-fill" id="xpBar"></div>
         </div>
@@ -300,6 +325,7 @@
         const canvas = document.getElementById('game');
         const ctx = canvas.getContext('2d');
         let myId=null, cam={x:0,y:0}, isPaused=false, particles=[], currentWalls=[], kit='assault', previewHat='none';
+        let myItems=[], myMoney=0;
 
         const keys={w:0,a:0,s:0,d:0,shift:0};
         const mouse={x:0,y:0,down:0,right:0};
@@ -311,8 +337,8 @@
         function startPreviewLoop() {
             const pCtx = document.getElementById('charPreview').getContext('2d');
             function loop() {
-                pCtx.clearRect(0,0,220,220);
-                drawChar(pCtx, 90, 90, '#4488FF', previewHat, Date.now()/1000, null, 1);
+                pCtx.clearRect(0,0,350,350);
+                drawChar(pCtx, 150, 150, '#4488FF', previewHat, Date.now()/1000, null, 1, 3); // Scale x3
                 requestAnimationFrame(loop);
             }
             loop();
@@ -324,6 +350,7 @@
             startPreviewLoop();
             const u = localStorage.getItem('imp_user'), p = localStorage.getItem('imp_pass');
             if(u && p) auth('login', u, p);
+            else socket.emit('requestLobbies'); // Get count even if guest
         };
 
         function auth(t, uVal, pVal) {
@@ -343,9 +370,12 @@
             document.getElementById('charName').innerText = d.user;
             document.getElementById('cpDisplay').innerText = d.money;
             document.getElementById('loginModal').style.display = 'none';
+            myItems = d.items || [];
             previewHat = d.equippedHat || 'none';
+            myMoney = d.money;
             
             if(d.isOwner || d.isStaff) document.getElementById('staffPanel').style.display='block';
+            socket.emit('requestLobbies');
         });
 
         socket.on('authMsg', d => { document.getElementById('msg').innerText = d.m; });
@@ -353,18 +383,36 @@
             let el = document.getElementById('shopMsg'); el.innerText = d.m; el.style.color = d.s ? 'lime' : 'red';
             setTimeout(()=>el.innerText="", 2000);
         });
-        socket.on('shopUpdate', d => { document.getElementById('cpDisplay').innerText = d.money; });
+        socket.on('shopUpdate', d => { myMoney=d.money; myItems=d.items; document.getElementById('cpDisplay').innerText = d.money; });
 
         function logout() { localStorage.clear(); location.reload(); }
         function openBrowser() { socket.emit('requestLobbies'); document.getElementById('browserModal').style.display='flex'; }
         function openShop() { document.getElementById('shopMenu').style.display='flex'; }
-        function openInventory() { socket.emit('equip', 'none'); previewHat='none'; } // Simple unequip for now
+        
+        // --- INVENTORY ---
+        function openInventory() { 
+            document.getElementById('inventoryMenu').style.display='flex'; 
+            renderInvPreview();
+            const list = document.getElementById('invList');
+            list.innerHTML = `<div class="shop-item" style="padding:10px; font-size:14px;" onclick="selectItem('none')">🚫 None</div>`;
+            myItems.forEach(i => {
+                list.innerHTML += `<div class="shop-item" style="padding:10px; font-size:14px;" onclick="selectItem('${i}')">${i.toUpperCase()}</div>`;
+            });
+        }
+        let invPreviewHat = 'none';
+        function selectItem(i) { invPreviewHat = i; renderInvPreview(); }
+        function renderInvPreview() {
+            const ctx = document.getElementById('invCharPreview').getContext('2d');
+            ctx.clearRect(0,0,150,150);
+            drawChar(ctx, 55, 55, '#4488FF', invPreviewHat, 0, null, 1);
+        }
+        function equipSelectedItem() { socket.emit('equip', invPreviewHat); previewHat = invPreviewHat; document.getElementById('inventoryMenu').style.display='none'; }
         function buy(item) { socket.emit('buy', item); }
 
         function createLobby() {
             socket.emit('createLobby', { 
                 name: document.getElementById('newLobbyName').value, 
-                isPublic: true, 
+                isPublic: !document.getElementById('privateCheck').checked, 
                 mode: document.getElementById('modeSelect').value, 
                 map: document.getElementById('mapSelect').value 
             });
@@ -373,10 +421,14 @@
         function joinPrivate() { socket.emit('joinLobby', document.getElementById('codeIn').value); }
 
         socket.on('lobbyList', list => {
+            // Update Player Count
+            let totalPlayers = list.reduce((sum, l) => sum + l.count, 0);
+            document.getElementById('onlineCount').innerText = `● ${totalPlayers} Players Online`;
+
             const c = document.getElementById('lobbyList'); c.innerHTML = "";
             if(list.length === 0) c.innerHTML = "<div style='color:#666; text-align:center;'>No public servers found.</div>";
             list.forEach(l => {
-                c.innerHTML += `<div class="lobby-item"><div><b style="color:white; font-size:16px;">${l.name}</b><br><small style="color:#aaa;">${l.mode} | ${l.map} | ${l.count} Players</small></div><button class="btn btn-green" style="width:auto; padding:5px 20px;" onclick="joinPublic('${l.id}')">JOIN</button></div>`;
+                c.innerHTML += `<div class="lobby-item"><div><b class="lobby-name">${l.name}</b><br><small style="color:#aaa;">${l.mode} | ${l.map} | ${l.count} Players</small></div><button class="btn btn-green" style="width:auto; padding:8px 25px;" onclick="joinPublic('${l.id}')">JOIN</button></div>`;
             });
         });
 
@@ -453,7 +505,7 @@
                 if(p.grapple.active) { ctx.beginPath(); ctx.moveTo(p.x+20,p.y+20); ctx.lineTo(p.grapple.x,p.grapple.y); ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke(); }
             }
 
-            s.bullets.forEach(b => { ctx.fillStyle=b.color; ctx.beginPath(); ctx.arc(b.x,b.y,5,0,7); ctx.fill(); });
+            s.bullets.forEach(b => { ctx.fillStyle=b.color; ctx.beginPath(); ctx.arc(b.x,b.y,6,0,7); ctx.fill(); });
             ctx.restore();
 
             // HUD
@@ -464,7 +516,10 @@
         });
 
         // Helper Draw Function
-        function drawChar(c, x, y, color, hat, angle, name, hpPct) {
+        function drawChar(c, x, y, color, hat, angle, name, hpPct, scale=1) {
+            c.save();
+            if(scale!==1) { c.translate(x, y); c.scale(scale, scale); c.translate(-x, -y); }
+            
             c.fillStyle = color; c.shadowBlur = 15; c.shadowColor = color; c.fillRect(x,y,40,40); c.shadowBlur = 0;
             if(hat==='tophat') { c.fillStyle='#111'; c.fillRect(x,y-15,40,10); c.fillRect(x+5,y-35,30,25); }
             if(hat==='crown') { c.fillStyle='gold'; c.font='20px Arial'; c.fillText('👑', x+10, y-10); }
@@ -479,6 +534,7 @@
                 c.fillStyle = "#ff4757"; c.fillRect(x, y-6, 40, 4);
                 c.fillStyle = "#00b894"; c.fillRect(x, y-6, 40*hpPct, 4);
             }
+            c.restore();
         }
 
         setInterval(() => {

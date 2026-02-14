@@ -17,11 +17,9 @@
         .btn:hover { filter: brightness(1.2); }
         .btn-blue { background: var(--primary); color: white; } .btn-green { background: #00b894; color: white; } .btn-red { background: #ff4757; color: white; } .btn-purple { background: #9b59b6; color: white; }
         input { width: 100%; padding: 12px; margin-bottom: 10px; background: rgba(0,0,0,0.5); border: 2px solid #444; color: white; border-radius: 8px; box-sizing: border-box; }
-        
         .kit-container { display: flex; gap: 5px; margin-bottom: 15px; }
         .kit-btn { flex: 1; padding: 10px 5px; background: #333; border: 2px solid transparent; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
         .kit-btn.selected { border-color: var(--primary); background: rgba(68,136,255,0.2); color: white; }
-
         #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
         #topBar { position: absolute; top: 15px; width: 100%; text-align: center; font-family: 'Fredoka One'; font-size: 24px; text-shadow: 2px 2px 0 #000; }
         #controlsInfo { position: absolute; top: 15px; right: 15px; text-align: right; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; font-size: 12px; pointer-events: none; border: 1px solid #444; }
@@ -169,12 +167,16 @@
 
             if(g.phase === 'GAME') {
                 document.getElementById('voteMenu').style.display='none';
-                let mins = Math.floor(g.timer / 60);
-                let secs = (g.timer % 60).toString().padStart(2, '0');
+                // FIXED TIMER DISPLAY
+                let secondsRemaining = Math.ceil(g.timer / 60);
+                let mins = Math.floor(secondsRemaining / 60);
+                let secs = (secondsRemaining % 60).toString().padStart(2, '0');
+                
                 let scores = g.mode !== 'FFA' ? ` <span style="color:#ff4757">${g.scores.red}</span> - <span style="color:#4488FF">${g.scores.blue}</span>` : '';
                 document.getElementById('topBar').innerHTML = `${mins}:${secs} | ${g.mode} ${scores}`;
             } else if (g.phase === 'VOTE') {
-                document.getElementById('topBar').innerHTML = "VOTING...";
+                let secondsRemaining = Math.ceil(g.timer / 60);
+                document.getElementById('topBar').innerHTML = `VOTING... ${secondsRemaining}`;
             } else {
                 document.getElementById('topBar').innerHTML = "WARMUP";
             }

@@ -6,307 +6,287 @@ const fs = require('fs');
 
 app.use(express.static('public'));
 
-// --- CONSTANTS & CONFIG ---
-const DB_FILE = 'database.json';
-const ROUND_TIME = 180; // 3 Minutes (in seconds)
-const VOTE_TIME = 15;
-const END_TIME = 10;
-
-// --- MAPS & MODES ---
-const MODES = ['FFA', 'KOTH', 'CTF'];
-const MAPS = [
-    { name: 'Arena', walls: [
-        {x:300,y:300,w:100,h:400}, {x:800,y:600,w:400,h:100}, {x:1200,y:200,w:200,h:200},
-        {x:0,y:0,w:50,h:1500}, {x:1950,y:0,w:50,h:1500}, {x:0,y:0,w:2000,h:50}, {x:0,y:1450,w:2000,h:50}
-    ]},
-    { name: 'Maze', walls: [
-        {x:200,y:0,w:50,h:1200}, {x:600,y:400,w:50,h:1200}, {x:1000,y:0,w:50,h:1000},
-        {x:0,y:0,w:50,h:1500}, {x:1950,y:0,w:50,h:1500}, {x:0,y:0,w:2000,h:50}, {x:0,y:1450,w:2000,h:50}
-    ]}
+// --- CONFIG ---
+const MAP_SIZE = { x: 2000, y: 1500 };
+const WALLS = [
+    {x:300,y:300,w:100,h:400}, {x:800,y:600,w:400,h:100}, {x:1200,y:200,w:200,h:200},
+    {x:0,y:0,w:50,h:1500}, {x:1950,y:0,w:50,h:1500}, {x:0,y:0,w:2000,h:50}, {x:0,y:1450,w:2000,h:50}
 ];
 
-// --- KITS ---
+// --- REBALANCED KITS (Classes) ---
 const KITS = {
-    shotgun: { name: 'Breacher', hp: 150, speed: 0.9, weapon: { damage: 12, speed: 18, cooldown: 55, count: 6, spread: 0.35, range: 40 } },
-    assault: { name: 'Soldier', hp: 100, speed: 1.0, weapon: { damage: 14, speed: 25, cooldown: 9, count: 1, spread: 0.05, range: 100 } },
-    sniper:  { name: 'Recon', hp: 75, speed: 1.1, weapon: { damage: 110, speed: 50, cooldown: 90, count: 1, spread: 0, range: 200 } },
-    tank:    { name: 'Juggernaut', hp: 250, speed: 0.6, weapon: { damage: 70, speed: 14, cooldown: 80, count: 1, spread: 0, range: 100 } }
+    assault: { 
+        name: 'Soldier', hp: 120, speed: 1.0, 
+        weapon: { name:'AR', damage: 12, speed: 22, cooldown: 8, ammo: 30, reload: 120, spread: 0.05, range: 80 } 
+    },
+    shotgun: { 
+        name: 'Breacher', hp: 160, speed: 0.9, 
+        weapon: { name:'Shotgun', damage: 9, speed: 18, cooldown: 55, ammo: 5, reload: 150, count: 6, spread: 0.3, range: 40 } 
+    },
+    sniper: { 
+        name: 'Recon', hp: 80, speed: 1.1, 
+        weapon: { name:'Sniper', damage: 95, speed: 45, cooldown: 80, ammo: 3, reload: 180, spread: 0.0, range: 200 } 
+    },
+    tank: { 
+        name: 'Heavy', hp: 300, speed: 0.7, 
+        weapon: { name:'LMG', damage: 8, speed: 20, cooldown: 5, ammo: 100, reload: 300, spread: 0.15, range: 70 } 
+    },
+    ninja: { 
+        name: 'Ninja', hp: 90, speed: 1.3, 
+        weapon: { name:'Shuriken', damage: 25, speed: 30, cooldown: 15, ammo: 10, reload: 60, spread: 0.02, range: 50 } 
+    }
 };
 
-// --- GAME STATE ---
-let players = {};
-let bullets = [];
+// --- DATABASE ---
+const DB_FILE = 'database.json';
 let userDB = {};
-
-let gameState = {
-    phase: 'WARMUP', // WARMUP, GAME, END, VOTE
-    timer: 0,
-    mode: 'FFA',
-    mapIndex: 0,
-    walls: MAPS[0].walls,
-    scores: { red: 0, blue: 0 }, // For Team Modes
-    flags: [], // For CTF
-    hill: null, // For KOTH
-    votes: { map: {}, mode: {} }
-};
-
-// Load DB
 if (fs.existsSync(DB_FILE)) { try { userDB = JSON.parse(fs.readFileSync(DB_FILE)); } catch(e) {} }
 function saveDB() { fs.writeFileSync(DB_FILE, JSON.stringify(userDB)); }
 
-// --- HELPERS ---
-function getSpawn(team) {
-    // Simple spawn logic: Red left, Blue right, FFA random
-    let x, y, hit;
-    let attempts = 0;
+// --- STATE ---
+const players = {};
+const bullets = [];
+
+function getSafeSpawn() {
+    let x, y, hit, attempts = 0;
     do {
-        if (gameState.mode === 'FFA') {
-            x = Math.random() * 1800 + 100;
-        } else if (team === 'RED') {
-            x = Math.random() * 400 + 100; // Left side
-        } else {
-            x = Math.random() * 400 + 1500; // Right side
-        }
-        y = Math.random() * 1300 + 100;
-        hit = gameState.walls.some(w => x < w.x + w.w && x + 40 > w.x && y < w.y + w.h && y + 40 > w.y);
+        x = Math.random() * (MAP_SIZE.x - 200) + 100;
+        y = Math.random() * (MAP_SIZE.y - 200) + 100;
+        hit = WALLS.some(w => x < w.x + w.w && x + 40 > w.x && y < w.y + w.h && y + 40 > w.y);
         attempts++;
     } while (hit && attempts < 100);
     return { x, y };
 }
 
-function resetGame(newMode, newMapIndex) {
-    gameState.mode = newMode;
-    gameState.mapIndex = newMapIndex;
-    gameState.walls = MAPS[newMapIndex].walls;
-    gameState.scores = { red: 0, blue: 0 };
-    gameState.timer = ROUND_TIME;
-    gameState.phase = 'GAME';
-    bullets = [];
-
-    // Setup Objectives
-    if (gameState.mode === 'KOTH') {
-        gameState.hill = { x: 900, y: 650, w: 200, h: 200, owner: null, progress: 0 };
-    } else {
-        gameState.hill = null;
-    }
-
-    if (gameState.mode === 'CTF') {
-        gameState.flags = [
-            { team: 'RED', x: 100, y: 750, base: {x:100, y:750}, carrier: null },
-            { team: 'BLUE', x: 1900, y: 750, base: {x:1900, y:750}, carrier: null }
-        ];
-    } else {
-        gameState.flags = [];
-    }
-
-    // Respawn All Players & Assign Teams
-    let pIds = Object.keys(players);
-    pIds.forEach((id, i) => {
-        let p = players[id];
-        if (gameState.mode !== 'FFA') {
-            p.team = (i % 2 === 0) ? 'RED' : 'BLUE'; // Simple alternating assign
-            p.color = (p.team === 'RED') ? '#ff4444' : '#4488ff';
-        } else {
-            p.team = 'FFA';
-            // Reset color if not owner
-            if(p.maxHp < 300) p.color = p.originalColor || '#4488FF'; 
-        }
-        p.score = 0; // Reset round score
-        p.deaths = 0;
-        p.kills = 0;
-        respawnPlayer(p);
-    });
+function getLevel(xp) {
+    return Math.floor(Math.sqrt(xp / 100)) + 1;
 }
 
-function respawnPlayer(p) {
-    let spawn = getSpawn(p.team);
-    p.x = spawn.x; p.y = spawn.y;
-    p.hp = p.maxHp;
-    p.vx = 0; p.vy = 0;
-}
-
-// --- SOCKETS ---
 io.on('connection', (socket) => {
-    socket.on('login', (data) => handleAuth(socket, data, true));
-    socket.on('guest', (data) => handleAuth(socket, data, false));
+    
+    // --- AUTH ---
     socket.on('signup', (data) => {
-        if(userDB[data.user]) return socket.emit('authMsg', {success:false, msg:"Taken"});
-        userDB[data.user] = { pass: data.pass, email: data.email, money:0, hat:'none' };
-        saveDB(); socket.emit('authMsg', {success:true, msg:"Created"});
+        if (userDB[data.user]) return socket.emit('authMsg', { success: false, msg: "Username Taken" });
+        userDB[data.user] = { 
+            pass: data.pass, email: data.email, 
+            money: 0, xp: 0, items: [] 
+        };
+        saveDB();
+        socket.emit('authMsg', { success: true, msg: "Account Created!" });
     });
 
-    socket.on('input', (data) => handleInput(socket, data));
-    socket.on('vote', (data) => {
-        if (gameState.phase !== 'VOTE') return;
-        // Tally votes
-        if (data.type === 'map') gameState.votes.map[data.val] = (gameState.votes.map[data.val] || 0) + 1;
-        if (data.type === 'mode') gameState.votes.mode[data.val] = (gameState.votes.mode[data.val] || 0) + 1;
+    socket.on('login', (data) => {
+        const acc = userDB[data.user];
+        if (!acc || acc.pass !== data.pass) return socket.emit('authMsg', { success: false, msg: "Invalid Login" });
+        joinGame(socket, data.user, acc, data.kit);
+    });
+
+    socket.on('guest', (data) => joinGame(socket, "Guest"+Math.floor(Math.random()*999), {money:0, xp:0, email:''}, data.kit));
+
+    function joinGame(socket, username, stats, kitName) {
+        const spawn = getSafeSpawn();
+        const isOwner = (stats.email === 'raidenrmarks12@gmail.com');
+        let kit = KITS[kitName] || KITS.assault;
+
+        if (isOwner) {
+            // God Mode Kit for Owner
+            kit = { name:'ADMIN', hp:1000, speed:1.5, weapon:{name:'BANHAMMER', damage:1000, speed:40, cooldown:5, ammo:999, reload:0, range:500}};
+        }
+
+        players[socket.id] = {
+            id: socket.id,
+            username: username,
+            x: spawn.x, y: spawn.y, w: 40, h: 40, vx: 0, vy: 0,
+            
+            // Stats
+            kit: kit,
+            hp: kit.hp, maxHp: kit.hp, speed: kit.speed,
+            color: isOwner ? '#FFD700' : '#4488FF',
+            money: stats.money, xp: stats.xp, level: getLevel(stats.xp),
+            items: stats.items || [],
+            hat: 'none',
+
+            // Combat
+            ammo: kit.weapon.ammo, maxAmmo: kit.weapon.ammo,
+            reloading: false, reloadTimer: 0,
+            shootTimer: 0, dashTimer: 0, grapple: { active: false },
+            
+            score: 0, kills: 0, deaths: 0,
+            isOwner: isOwner
+        };
+        
+        socket.emit('startGame', { id: socket.id, isOwner: isOwner });
+    }
+
+    // --- STAFF COMMANDS ---
+    socket.on('staffAction', (data) => {
+        const p = players[socket.id];
+        if(!p || !p.isOwner) return;
+
+        if(data.type === 'giveCP') {
+            p.money += 1000;
+            if(userDB[p.username]) userDB[p.username].money = p.money;
+            saveDB();
+        }
+        if(data.type === 'kickAll') {
+            // Logic to kick non-owners would go here
+            io.emit('chatMsg', { user: '[SYSTEM]', text: 'Server Restarting...', color: 'red' });
+        }
+    });
+
+    // --- SHOP ---
+    socket.on('buy', (item) => {
+        const p = players[socket.id]; // Only works in-game for now or needs DB lookup
+        // Simplified: Client handles menu, Server validates purchase if player is online
+        if(!p || !userDB[p.username]) return;
+        
+        let cost = 0;
+        if(item === 'tophat') cost = 500;
+        if(item === 'crown') cost = 2000;
+
+        if(p.money >= cost && !p.items.includes(item)) {
+            p.money -= cost;
+            p.items.push(item);
+            p.hat = item;
+            userDB[p.username].money = p.money;
+            userDB[p.username].items = p.items;
+            saveDB();
+        }
+    });
+
+    socket.on('equip', (item) => {
+        const p = players[socket.id];
+        if(p && (p.items.includes(item) || item === 'none')) {
+            p.hat = item;
+        }
+    });
+
+    // --- CHAT ---
+    socket.on('chat', (msg) => {
+        const p = players[socket.id];
+        if(p && msg.trim()) {
+            let col = p.isOwner ? '#FFD700' : 'white';
+            let tag = p.isOwner ? '[OWNER] ' : `[Lvl ${p.level}] `;
+            io.emit('chatMsg', { user: tag + p.username, text: msg.substring(0, 100), color: col });
+        }
+    });
+
+    // --- INPUT ---
+    socket.on('input', (d) => {
+        const p = players[socket.id];
+        if(!p) return;
+        
+        p.angle = d.angle;
+        
+        // MOVEMENT
+        let spd = p.speed * (d.dash && p.dashTimer <= 0 ? 25 : 0.8);
+        if(d.dash && p.dashTimer <= 0) p.dashTimer = 90; // 1.5s dash cooldown
+
+        if(d.up) p.vy -= spd; if(d.down) p.vy += spd;
+        if(d.left) p.vx -= spd; if(d.right) p.vx += spd;
+
+        // SHOOTING & RELOADING
+        if(p.reloadTimer > 0) {
+            p.reloadTimer--;
+            if(p.reloadTimer <= 0) {
+                p.ammo = p.maxAmmo;
+                p.reloading = false;
+            }
+        } else if (d.shoot && p.shootTimer <= 0) {
+            if (p.ammo > 0) {
+                p.shootTimer = p.kit.weapon.cooldown;
+                p.ammo--;
+                
+                const count = p.kit.weapon.count || 1;
+                for(let i=0; i<count; i++) {
+                    let spread = (Math.random()-0.5) * (p.kit.weapon.spread || 0);
+                    bullets.push({
+                        x: p.x+20, y: p.y+20,
+                        vx: Math.cos(p.angle + spread) * p.kit.weapon.speed,
+                        vy: Math.sin(p.angle + spread) * p.kit.weapon.speed,
+                        damage: p.kit.weapon.damage,
+                        owner: socket.id,
+                        life: p.kit.weapon.range || 100,
+                        color: p.color
+                    });
+                }
+            } else {
+                // Auto reload on empty
+                p.reloading = true;
+                p.reloadTimer = p.kit.weapon.reload;
+            }
+        }
+
+        // Manual Reload (R key usually, but automated here for simplicity or add key)
+        
+        // GRAPPLE
+        if(d.grapple && !p.grapple.active) { 
+            p.grapple.active=true; p.grapple.x=d.gx; p.grapple.y=d.gy; 
+        } else if(!d.grapple) p.grapple.active=false;
     });
 
     socket.on('disconnect', () => delete players[socket.id]);
 });
 
-function handleAuth(socket, data, isLogin) {
-    let acc = isLogin ? userDB[data.user] : { money: 0, hat: 'none' };
-    if (isLogin && (!acc || acc.pass !== data.pass)) return socket.emit('authMsg', {success:false, msg:"Fail"});
-
-    let kit = KITS[data.kit] || KITS.assault;
-    let isOwner = acc.email === 'raidenrmarks12@gmail.com';
-    if(isOwner) kit = { name:'OWNER', hp:500, speed:1.2, weapon:{damage:100,speed:25,cooldown:10,count:1,spread:0.05,range:200}};
-
-    players[socket.id] = {
-        id: socket.id,
-        username: isLogin ? data.user : "Guest"+Math.floor(Math.random()*100),
-        team: 'FFA', color: isOwner ? '#FFD700' : '#4488FF', originalColor: isOwner ? '#FFD700' : '#4488FF',
-        x:0, y:0, vx:0, vy:0, w:40, h:40,
-        hp: kit.hp, maxHp: kit.hp, speed: kit.speed, weapon: kit.weapon,
-        kit: kit.name, money: acc.money, hat: acc.hat,
-        kills: 0, deaths: 0, score: 0,
-        grapple: {active:false}, shootTimer:0, dashTimer:0
-    };
-    respawnPlayer(players[socket.id]);
-    socket.emit('startGame', { id: socket.id });
-}
-
-function handleInput(s, d) {
-    let p = players[s.id]; if(!p) return;
-    p.angle = d.angle;
-    
-    // Move
-    let spd = p.speed * (d.dash && p.dashTimer<=0 ? 25 : 0.8);
-    if(d.dash && p.dashTimer<=0) p.dashTimer=60;
-    if(d.up) p.vy-=spd; if(d.down) p.vy+=spd; if(d.left) p.vx-=spd; if(d.right) p.vx+=spd;
-
-    // Shoot
-    if(d.shoot && p.shootTimer<=0) {
-        p.shootTimer = p.weapon.cooldown;
-        for(let i=0; i<(p.weapon.count||1); i++) {
-            let a = p.angle + (Math.random()-0.5)*(p.weapon.spread||0);
-            bullets.push({ x:p.x+20, y:p.y+20, vx:Math.cos(a)*p.weapon.speed, vy:Math.sin(a)*p.weapon.speed, damage:p.weapon.damage, owner:s.id, life:p.weapon.range||100 });
-        }
-    }
-    // Grapple
-    if(d.grapple && !p.grapple.active) { p.grapple.active=true; p.grapple.x=d.gx; p.grapple.y=d.gy; }
-    else if(!d.grapple) p.grapple.active=false;
-}
-
-// --- MAIN LOOP ---
+// --- GAME LOOP ---
 setInterval(() => {
-    // 1. GAME LOGIC
-    if (gameState.phase === 'GAME') {
-        gameState.timer--;
-        if (gameState.timer <= 0) {
-            gameState.phase = 'END';
-            gameState.timer = END_TIME;
-            // Send leaderboard
-            let sorted = Object.values(players).sort((a,b) => b.score - a.score).slice(0,5);
-            io.emit('gameover', { top: sorted, scores: gameState.scores });
-        }
-
-        // KOTH Logic
-        if (gameState.mode === 'KOTH' && gameState.hill) {
-            let redCount = 0, blueCount = 0;
-            for(let id in players) {
-                let p = players[id];
-                if(p.x > gameState.hill.x && p.x < gameState.hill.x+gameState.hill.w && p.y > gameState.hill.y && p.y < gameState.hill.y+gameState.hill.h) {
-                    if(p.team === 'RED') redCount++; else if(p.team === 'BLUE') blueCount++;
-                }
-            }
-            if(redCount > blueCount) gameState.scores.red++;
-            else if(blueCount > redCount) gameState.scores.blue++;
-        }
-        
-        // CTF Logic is handled in collision
-    } 
-    else if (gameState.phase === 'END') {
-        gameState.timer--;
-        if (gameState.timer <= 0) {
-            gameState.phase = 'VOTE';
-            gameState.timer = VOTE_TIME;
-            gameState.votes = { map:{}, mode:{} }; // Reset votes
-        }
-    }
-    else if (gameState.phase === 'VOTE') {
-        gameState.timer--;
-        if (gameState.timer <= 0) {
-            // Count votes
-            let maxMode = 'FFA', maxMV = 0;
-            for(let m in gameState.votes.mode) if(gameState.votes.mode[m] > maxMV) { maxMode = m; maxMV = gameState.votes.mode[m]; }
-            
-            let maxMap = 0, maxMapV = 0;
-            for(let m in gameState.votes.map) if(gameState.votes.map[m] > maxMapV) { maxMap = parseInt(m); maxMapV = gameState.votes.map[m]; }
-
-            resetGame(maxMode, maxMap);
-        }
-    }
-
-    // 2. PHYSICS
-    for (let id in players) {
+    // PHYSICS
+    for(let id in players) {
         let p = players[id];
-        p.x+=p.vx; p.y+=p.vy; p.vx*=0.9; p.vy*=0.9;
-        if(p.dashTimer>0) p.dashTimer--; if(p.shootTimer>0) p.shootTimer--;
-        
-        gameState.walls.forEach(w => {
+        p.x += p.vx; p.y += p.vy; p.vx *= 0.9; p.vy *= 0.9;
+        if(p.shootTimer > 0) p.shootTimer--;
+        if(p.dashTimer > 0) p.dashTimer--;
+
+        // Walls
+        WALLS.forEach(w => {
             if(p.x < w.x+w.w && p.x+p.w > w.x && p.y < w.y+w.h && p.y+p.h > w.y) {
                 p.x-=p.vx*1.2; p.y-=p.vy*1.2; p.vx=0; p.vy=0;
             }
         });
-        if(p.grapple.active) { p.vx += (p.grapple.x-(p.x+20))*0.002; p.vy += (p.grapple.y-(p.y+20))*0.002; }
         
-        // CTF Flag Pickup
-        if (gameState.mode === 'CTF') {
-            gameState.flags.forEach(f => {
-                // Pickup enemy flag
-                if (!f.carrier && p.team !== f.team && Math.hypot(p.x-f.x, p.y-f.y) < 40) f.carrier = p.id;
-                // Capture (have flag, touch own base)
-                if (f.carrier === p.id && Math.hypot(p.x-f.base.x, p.y-f.base.y) < 50) {
-                    gameState.scores[p.team.toLowerCase()]++; // Point!
-                    p.score += 100; // Personal score
-                    f.carrier = null; f.x = f.base.x; f.y = f.base.y; // Reset
-                }
-            });
+        // Grapple
+        if(p.grapple.active) {
+            p.vx += (p.grapple.x - (p.x+20)) * 0.002;
+            p.vy += (p.grapple.y - (p.y+20)) * 0.002;
         }
     }
 
-    // 3. BULLETS & COMBAT
-    for (let i = bullets.length - 1; i >= 0; i--) {
+    // BULLETS
+    for(let i=bullets.length-1; i>=0; i--) {
         let b = bullets[i]; b.x+=b.vx; b.y+=b.vy; b.life--;
         let hit = false;
-        if(gameState.walls.some(w => b.x>w.x && b.x<w.x+w.w && b.y>w.y && b.y<w.y+w.h)) hit=true;
+        
+        if(WALLS.some(w => b.x>w.x && b.x<w.x+w.w && b.y>w.y && b.y<w.y+w.h)) hit=true;
         
         if(!hit) {
             for(let id in players) {
                 let p = players[id];
-                if(b.owner !== id && (gameState.mode === 'FFA' || p.team !== players[b.owner].team) && 
-                   b.x>p.x && b.x<p.x+p.w && b.y>p.y && b.y<p.y+p.h) {
-                    p.hp -= b.damage; hit = true;
+                if(b.owner !== id && b.x>p.x && b.x<p.x+p.w && b.y>p.y && b.y<p.y+p.h) {
+                    p.hp -= b.damage; hit=true;
                     if(p.hp <= 0) {
-                        let killer = players[b.owner];
-                        if(killer) { 
-                            killer.kills++; killer.score += 10; killer.money += 10;
-                            if(userDB[killer.username]) { userDB[killer.username].money=killer.money; saveDB(); }
+                        let k = players[b.owner];
+                        if(k) {
+                            k.kills++; k.money += 25; k.xp += 50; 
+                            k.level = getLevel(k.xp);
+                            // Auto Save Killer
+                            if(userDB[k.username]) { 
+                                userDB[k.username].money = k.money; 
+                                userDB[k.username].xp = k.xp; 
+                                saveDB(); 
+                            }
                         }
-                        p.deaths++;
-                        // CTF Drop Flag
-                        if(gameState.mode === 'CTF') {
-                            gameState.flags.forEach(f => { if(f.carrier === p.id) { f.carrier = null; f.x = p.x; f.y = p.y; } });
-                        }
-                        respawnPlayer(p);
+                        // Respawn
+                        let s = getSafeSpawn(); p.x=s.x; p.y=s.y; p.hp=p.maxHp; p.deaths++;
+                        p.ammo = p.maxAmmo; p.reloading = false;
                     }
                 }
             }
         }
-        if(hit || b.life <= 0) bullets.splice(i, 1);
+        if(hit || b.life <= 0) bullets.splice(i,1);
     }
-
-    // Update flags position to carrier
-    if(gameState.mode === 'CTF') {
-        gameState.flags.forEach(f => {
-            if(f.carrier && players[f.carrier]) { f.x = players[f.carrier].x; f.y = players[f.carrier].y; }
-        });
-    }
-
-    io.emit('state', { players, bullets, game: gameState });
+    
+    io.emit('state', { players, bullets });
 }, 1000/60);
 
-http.listen(process.env.PORT || 3000, () => console.log('Server running'));
+const PORT = process.env.PORT || 3000;
+http.listen(PORT, () => console.log(`Server on ${PORT}`));

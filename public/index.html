@@ -5,111 +5,87 @@
     <title>Imp Cubes: Ultimate</title>
     <link rel="icon" type="image/png" href="https://media.discordapp.net/attachments/1286433136804106282/1472114823369330689/image.png?ex=69916544&is=699013c4&hm=6e53418ccc28321ed6703073c2da8530a6e16e4680acae446d8a83c2372b6352">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Orbitron:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary: #00d4ff;
-            --primary-dark: #0099bb;
-            --accent: #ffd700;
-            --accent-glow: rgba(255,215,0,0.6);
-            --bg: #0b0015;
-            --glass: rgba(20, 25, 45, 0.75);
-            --glass-border: rgba(0, 212, 255, 0.18);
-            --text: #f0f4ff;
-            --text-muted: #a0b0d0;
-            --danger: #ff3366;
-            --success: #00ff9d;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; overflow: hidden; height: 100vh; touch-action: none; user-select: none; 
-            background-image: radial-gradient(circle at 20% 30%, rgba(0,212,255,0.08) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(255,215,0,0.06) 0%, transparent 50%); }
+        :root { --primary: #4488FF; --accent: #FFD700; --bg: #0a0a10; }
+        body { margin: 0; background: var(--bg); overflow: hidden; font-family: 'Nunito', sans-serif; color: white; touch-action: none; user-select: none; }
         canvas { display: block; }
-        .overlay { position: absolute; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(5, 5, 20, 0.92); backdrop-filter: blur(4px); }
-        .glass { background: var(--glass); border: 1px solid var(--glass-border); border-radius: 20px; padding: 2.2rem; box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,212,255,0.08); backdrop-filter: blur(12px); max-width: 95vw; max-height: 92vh; overflow-y: auto; }
-        h1, h2, h3 { font-family: 'Orbitron', monospace; color: var(--primary); text-shadow: 0 0 12px rgba(0,212,255,0.7); margin-bottom: 1rem; }
-        h1 { font-size: 2.6rem; letter-spacing: 2px; }
-        h2 { font-size: 1.9rem; }
-        .btn { width: 100%; padding: 14px; margin: 10px 0 6px; border: none; border-radius: 10px; font-family: 'Fredoka One', cursive; font-size: 1.1rem; cursor: pointer; transition: all 0.18s ease; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.5); }
-        .btn-blue { background: linear-gradient(145deg, var(--primary), var(--primary-dark)); color: #000; }
-        .btn-green { background: linear-gradient(145deg, #00ff9d, #00c47a); color: #000; }
-        .btn-red { background: linear-gradient(145deg, var(--danger), #cc0033); color: white; }
-        .btn-purple { background: linear-gradient(145deg, #9b59b6, #6c2f8f); color: white; }
-        input, select { width: 100%; padding: 14px; margin: 10px 0; background: rgba(10,15,30,0.7); border: 1px solid rgba(0,212,255,0.25); border-radius: 10px; color: white; font-size: 1rem; }
-        input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,212,255,0.25); }
-        .kit-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin: 1.2rem 0; }
-        .kit-btn { padding: 12px 8px; background: rgba(30,40,60,0.6); border: 2px solid transparent; border-radius: 10px; cursor: pointer; font-family: 'Fredoka One'; font-size: 0.95rem; color: var(--text-muted); transition: all 0.2s; text-align: center; }
-        .kit-btn:hover { background: rgba(50,70,100,0.7); color: white; }
-        .kit-btn.selected { border-color: var(--primary); background: rgba(0,212,255,0.15); color: white; box-shadow: 0 0 15px rgba(0,212,255,0.4); }
-        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin: 1.5rem 0; }
-        .item-card { background: rgba(255,255,255,0.04); padding: 1.2rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); cursor: pointer; transition: all 0.2s; text-align: center; font-size: 0.95rem; }
-        .item-card:hover { border-color: var(--primary); background: rgba(0,212,255,0.08); transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
-        .item-card.selected { border-color: var(--accent); background: rgba(255,215,0,0.12); box-shadow: 0 0 20px rgba(255,215,0,0.3); }
-        .item-price { color: var(--accent); font-weight: bold; margin-top: 8px; text-shadow: 0 0 6px var(--accent-glow); }
-        #lobbyContainer { display: flex; gap: 1.8rem; flex-direction: row; }
-        #lobbyList { flex: 2; background: rgba(10,15,30,0.5); border-radius: 12px; padding: 1rem; overflow-y: auto; max-height: 420px; }
-        #createPanel { flex: 1; padding: 1rem; border-left: 1px solid rgba(255,255,255,0.08); }
-        .lobby-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.04); padding: 12px 16px; margin-bottom: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); transition: all 0.18s; }
-        .lobby-item:hover { background: rgba(0,212,255,0.08); border-color: var(--primary); }
+
+        .glass { background: rgba(30,35,45,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); text-align: center; position: relative; }
+        .overlay { position: absolute; width: 100%; height: 100%; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.9); }
+        .site-logo { width: 140px; height: 140px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 0 25px var(--primary); }
+        h1, h2 { font-family: 'Fredoka One'; color: var(--primary); margin: 0; margin-bottom: 10px; }
+        
+        .btn { width: 100%; padding: 12px; margin-top: 8px; border: none; border-radius: 8px; font-family: 'Fredoka One'; cursor: pointer; text-transform: uppercase; transition: 0.1s; color: white; }
+        .btn:hover { filter: brightness(1.2); }
+        .btn-blue { background: var(--primary); } 
+        .btn-green { background: #00b894; } 
+        .btn-red { background: #ff4757; } 
+        .btn-purple { background: #9b59b6; }
+        
+        input, select { width: 100%; padding: 12px; margin-bottom: 10px; background: rgba(0,0,0,0.5); border: 2px solid #444; color: white; border-radius: 8px; box-sizing: border-box; }
+        .kit-container { display: flex; gap: 5px; margin-bottom: 15px; }
+        .kit-btn { flex: 1; padding: 10px 5px; background: #333; border: 2px solid transparent; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; color: #aaa; font-family: 'Fredoka One'; }
+        .kit-btn.selected { border-color: var(--primary); background: rgba(68,136,255,0.2); color: white; }
+
+        /* SHOP & INVENTORY STYLES */
+        #shopMenu, #inventoryMenu { display: none; }
+        .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; max-height: 300px; overflow-y: auto; }
+        .item-card { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; border: 1px solid #444; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
+        .item-card:hover { border-color: white; background: rgba(255,255,255,0.1); }
+        .item-card.selected { border-color: var(--accent); background: rgba(255, 215, 0, 0.1); }
+        .item-price { color: var(--accent); font-weight: bold; margin-top: 5px; }
+        
+        #invPreview { display: flex; gap: 20px; align-items: flex-start; text-align: left; }
+        #charPreview { background: #111; border-radius: 10px; border: 2px solid #444; }
+
+        /* LOBBY */
+        #lobbyMenu { display: none; } 
+        #lobbyContainer { display: flex; gap: 20px; text-align: left; }
+        #lobbyList { flex: 1.5; background: rgba(0,0,0,0.3); border-radius: 8px; height: 350px; overflow-y: auto; padding: 10px; }
+        #createPanel { flex: 1; border-left: 1px solid #444; padding-left: 20px; display: flex; flex-direction: column; }
+        .lobby-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; margin-bottom: 5px; border-radius: 6px; border: 1px solid #333; }
+        
+        /* HUD */
         #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
-        #topBar { position: absolute; top: 16px; left: 0; right: 0; text-align: center; font-family: 'Orbitron', monospace; font-size: 2rem; text-shadow: 0 0 12px #000, 0 0 20px var(--primary); letter-spacing: 3px; }
-        #lobbyDisplay { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); font-size: 1.1rem; color: var(--text-muted); font-family: 'Orbitron'; text-shadow: 0 0 8px #000; }
-        #statsArea { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); width: 340px; text-align: center; }
-        .bar { height: 10px; background: rgba(0,0,0,0.6); border-radius: 6px; margin: 6px 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
-        .fill { height: 100%; transition: width 0.2s ease; box-shadow: inset 0 0 10px rgba(255,255,255,0.3); }
-        #hpBar { background: linear-gradient(to right, #ff3366, #ff6699); }
-        #xpBar { background: linear-gradient(to right, #9b59b6, #c47aff); }
-        #reloadBar { background: linear-gradient(to right, white, #ddd); }
-        #chatBox { position: absolute; bottom: 20px; left: 20px; width: 340px; pointer-events: auto; }
-        #chatMsgs { height: 160px; overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-end; padding: 10px; background: rgba(0,0,0,0.5); border-radius: 10px 10px 0 0; font-size: 0.95rem; text-shadow: 1px 1px 3px black; }
-        #chatInput { width: 100%; padding: 12px; background: rgba(10,15,30,0.8); border: 1px solid rgba(0,212,255,0.3); border-top: none; border-radius: 0 0 10px 10px; color: white; font-size: 1rem; }
-        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 1.5rem; }
-        .logout-link { color: var(--danger); font-size: 0.9rem; cursor: pointer; text-decoration: underline; margin-top: 1.5rem; display: block; text-align: center; }
-        @media (max-width: 768px) { .glass { padding: 1.5rem; } #lobbyContainer { flex-direction: column; } #createPanel { border-left: none; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 1.5rem; } h1 { font-size: 2.2rem; } }
+        #topBar { position: absolute; top: 15px; width: 100%; text-align: center; font-family: 'Fredoka One'; font-size: 24px; text-shadow: 2px 2px 0 #000; }
+        #lobbyDisplay { position:absolute; top:50px; left:50%; transform:translateX(-50%); font-size:14px; color:#aaa; font-family:'Fredoka One'; }
+        #statsArea { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); text-align: center; width: 300px; }
+        .bar { height: 8px; background: #444; border-radius: 4px; margin-top: 5px; overflow: hidden; }
+        .fill { height: 100%; transition: width 0.1s; }
+        #chatBox { position: absolute; bottom: 20px; left: 20px; width: 300px; pointer-events: auto; }
+        #chatMsgs { height: 150px; overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-end; mask-image: linear-gradient(to top, black 80%, transparent 100%); text-shadow: 1px 1px 2px black; font-weight: bold; font-size: 13px; }
+        #chatInput { background: rgba(0,0,0,0.6); display: none; margin: 0; color: white; border: 1px solid #666; border-radius: 4px; }
+        
+        #pauseMenu { display: none; } 
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .logout-link { color: #ff4757; font-size: 12px; cursor: pointer; text-decoration: underline; margin-top: auto; display: inline-block; pointer-events: auto; align-self: center; }
+        .toggle-cont { display: flex; align-items: center; gap: 10px; margin: 10px 0; font-size: 14px; }
     </style>
 </head>
 <body>
-    <!-- NEW CLEAN MAIN MENU -->
+
     <div id="mainMenu" class="overlay" style="z-index: 200;">
-        <div class="glass" style="width: 380px; max-width: 92vw; padding: 2.5rem 2rem;">
-            <div style="text-align: center; margin-bottom: 2rem;">
-                <img src="https://media.discordapp.net/attachments/1286433136804106282/1472114823369330689/image.png?ex=69916544&is=699013c4&hm=6e53418ccc28321ed6703073c2da8530a6e16e4680acae446d8a83c2372b6352" 
-                     style="width: 140px; height: 140px; border-radius: 28px; box-shadow: 0 0 35px var(--primary); margin-bottom: 1.2rem;">
-                <h1 style="font-size: 3.4rem; letter-spacing: 5px; margin: 0; line-height: 1;">IMP CUBES</h1>
-                <div style="font-size: 1.15rem; color: var(--text-muted); margin-top: 0.6rem; font-family: 'Orbitron';">ULTIMATE ARENA SHOOTER</div>
+        <div class="glass" style="width: 350px;">
+            <img src="https://media.discordapp.net/attachments/1286433136804106282/1472114823369330689/image.png?ex=69916544&is=699013c4&hm=6e53418ccc28321ed6703073c2da8530a6e16e4680acae446d8a83c2372b6352" class="site-logo">
+            <input id="user" placeholder="Username">
+            <input id="pass" type="password" placeholder="Password">
+            <input id="email" placeholder="Email (Owner Only)">
+            <div style="text-align:left; font-size:12px; color:#aaa; margin-top:10px;">SELECT CLASS</div>
+            <div class="kit-container">
+                <div class="kit-btn selected" onclick="selKit('assault',this)">SOLDIER</div>
+                <div class="kit-btn" onclick="selKit('shotgun',this)">BREACH</div>
+                <div class="kit-btn" onclick="selKit('sniper',this)">RECON</div>
+                <div class="kit-btn" onclick="selKit('tank',this)">HEAVY</div>
+                <div class="kit-btn" onclick="selKit('ninja',this)">NINJA</div>
             </div>
-            <input id="user" placeholder="Username" autocomplete="username">
-            <input id="pass" type="password" placeholder="Password" autocomplete="current-password">
-            <button class="btn btn-blue" onclick="auth('login')" style="margin-top: 1.8rem;">LOGIN</button>
-            <button class="btn btn-green" onclick="auth('signup')">CREATE ACCOUNT</button>
-            <button class="btn btn-purple" onclick="auth('guest')" style="margin-top: 1.2rem;">PLAY AS GUEST</button>
-            <div id="msg" style="margin-top: 1.4rem; font-size: 0.95rem; min-height: 1.5rem; text-align: center;"></div>
+            <button class="btn btn-blue" onclick="auth('login')">LOGIN</button>
+            <button class="btn btn-green" onclick="auth('signup')">SIGN UP</button>
+            <div id="msg" style="margin-top:10px; font-size:12px;"></div>
         </div>
     </div>
 
-    <!-- NEW KIT SELECTION MENU -->
-    <div id="kitSelectMenu" class="overlay" style="display:none; z-index:198;">
-        <div class="glass" style="width: 460px; max-width: 94vw;">
-            <h2 style="text-align:center; margin-bottom:1rem;">CHOOSE YOUR IMP</h2>
-            <p style="text-align:center; color:var(--text-muted); margin-bottom:1.5rem; font-size:0.95rem;">
-                Select your class — you can change it between rounds later
-            </p>
-            <div class="kit-container" style="grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap:12px;">
-                <div class="kit-btn selected" onclick="selKit('assault',this)">SOLDIER<br><small>Balanced</small></div>
-                <div class="kit-btn" onclick="selKit('shotgun',this)">BREACH<br><small>Shotgun</small></div>
-                <div class="kit-btn" onclick="selKit('sniper',this)">RECON<br><small>Sniper</small></div>
-                <div class="kit-btn" onclick="selKit('tank',this)">HEAVY<br><small>Tank</small></div>
-                <div class="kit-btn" onclick="selKit('ninja',this)">NINJA<br><small>Fast</small></div>
-            </div>
-            <button class="btn btn-green" onclick="confirmKit()" style="margin-top:1.8rem; width:100%;">CONFIRM & JOIN</button>
-            <button class="btn btn-red" onclick="logout()" style="margin-top:0.8rem; width:100%;">BACK TO MENU</button>
-        </div>
-    </div>
-
-    <!-- ALL YOUR ORIGINAL MENUS (unchanged) -->
-    <div id="lobbyMenu" class="overlay" style="z-index: 199; display:none;">
+    <div id="lobbyMenu" class="overlay" style="z-index: 199;">
         <div class="glass" style="width: 750px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <h2>SERVER BROWSER</h2>
@@ -120,7 +96,9 @@
                 </div>
             </div>
             <div id="lobbyContainer">
-                <div id="lobbyList"><div style="color:#888; text-align:center; padding:20px;">Loading servers...</div></div>
+                <div id="lobbyList">
+                    <div style="color:#888; text-align:center; padding:20px;">Loading servers...</div>
+                </div>
                 <div id="createPanel">
                     <h3>CREATE ROOM</h3>
                     <input id="newLobbyName" placeholder="Room Name">
@@ -136,7 +114,7 @@
         </div>
     </div>
 
-    <div id="shopMenu" class="overlay" style="z-index:205; display:none;">
+    <div id="shopMenu" class="overlay" style="z-index:205;">
         <div class="glass" style="width: 400px;">
             <h2>ITEM SHOP</h2>
             <div class="grid-container">
@@ -150,7 +128,7 @@
         </div>
     </div>
 
-    <div id="inventoryMenu" class="overlay" style="z-index:205; display:none;">
+    <div id="inventoryMenu" class="overlay" style="z-index:205;">
         <div class="glass" style="width: 500px;">
             <h2>INVENTORY</h2>
             <div id="invPreview">
@@ -159,7 +137,8 @@
                     <div style="margin-top:5px; color:#aaa; font-size:12px;">PREVIEW</div>
                 </div>
                 <div style="flex:1;">
-                    <div id="invList" class="grid-container" style="max-height:200px;"></div>
+                    <div id="invList" class="grid-container" style="max-height:200px;">
+                        </div>
                     <button class="btn btn-green" onclick="equipSelectedItem()" style="margin-top:15px;">EQUIP SELECTED</button>
                 </div>
             </div>
@@ -167,7 +146,7 @@
         </div>
     </div>
 
-    <div id="pauseMenu" class="overlay" style="display:none;">
+    <div id="pauseMenu" class="overlay">
         <div class="glass" style="width: 350px;">
             <h2>PAUSED</h2>
             <div class="menu-grid"><button class="btn btn-blue" onclick="togglePause()">RESUME</button><button class="btn btn-red" onclick="location.reload()">LEAVE GAME</button></div>
@@ -187,6 +166,9 @@
     <div id="hud">
         <div id="topBar"></div>
         <div id="lobbyDisplay">LOBBY: ????</div>
+        <div id="controlsInfo">
+            <div>Move <span class="key">WASD</span></div><div>Dash <span class="key">SHIFT</span></div><div>Shoot <span class="key">L-CLICK</span></div><div>Menu <span class="key">P</span></div>
+        </div>
         <div id="statsArea">
             <div id="ammoText" style="font-family:'Fredoka One'; font-size:24px;">30 / 30</div>
             <div class="bar"><div id="reloadBar" class="fill" style="width:0%; background:white;"></div></div>
@@ -205,51 +187,48 @@
         const ctx = canvas.getContext('2d');
         let myId=null, cam={x:0,y:0}, isPaused=false, particles=[], currentWalls=[], kit='assault';
         let myItems = [], myMoney = 0, previewHat = 'none';
+
         const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
         window.onresize = resize; resize();
 
-        function selKit(k, el) { 
-            kit = k; 
-            document.querySelectorAll('.kit-btn').forEach(b => b.classList.remove('selected')); 
-            el.classList.add('selected'); 
-        }
-
-        function val(id) { return document.getElementById(id).value; }
-
-        // UPDATED AUTH - no kit sent
-        function auth(t) { 
-            socket.emit(t, {user: val('user'), pass: val('pass'), email: val('email')}); 
-        }
-
+        function selKit(k, el) { kit=k; document.querySelectorAll('.kit-btn').forEach(b=>b.classList.remove('selected')); el.classList.add('selected'); }
+        window.onload = () => { const u = localStorage.getItem('imp_user'), p = localStorage.getItem('imp_pass'); if(u && p) { document.getElementById('user').value = u; document.getElementById('pass').value = p; auth('login'); } };
+        function auth(t) { socket.emit(t, {user: val('user'), pass: val('pass'), email: val('email'), kit: kit}); }
         function logout() { localStorage.clear(); location.reload(); }
-
-        // NEW: Confirm kit and start game
-        function confirmKit() {
-            localStorage.setItem('lastKit', kit);
-            socket.emit('selectKit', kit);
-            document.getElementById('kitSelectMenu').style.display = 'none';
-            document.getElementById('hud').style.display = 'block';
-            document.getElementById('lobbyDisplay').innerText = "LOBBY: " + currentLobbyId;
-        }
-
-        let currentLobbyId = "";
-
-        window.onload = () => { 
-            const u = localStorage.getItem('imp_user'), p = localStorage.getItem('imp_pass'); 
-            if(u && p) { document.getElementById('user').value = u; document.getElementById('pass').value = p; auth('login'); } 
-        };
-
-        // ALL YOUR ORIGINAL FUNCTIONS (unchanged)
+        function val(id) { return document.getElementById(id).value; }
         function buy(item) { socket.emit('buy', item); }
         function createLobby() { socket.emit('createLobby', { name: val('newLobbyName'), isPublic: !document.getElementById('privateCheck').checked, mode: val('modeSelect'), map: val('mapSelect') }); }
         function joinPrivate() { socket.emit('joinLobby', val('lobbyCodeInput')); }
         function joinPublic(id) { socket.emit('joinLobby', id); }
-        function openInventory() { /* your original code */ document.getElementById('inventoryMenu').style.display = 'flex'; renderPreview(); /* ... rest of your code ... */ }
-        // ... (keep EVERYTHING you had for inventory, preview, etc. exactly the same)
+
+        // --- INVENTORY LOGIC ---
+        function openInventory() {
+            document.getElementById('inventoryMenu').style.display = 'flex';
+            renderPreview();
+            const list = document.getElementById('invList');
+            list.innerHTML = `<div class="item-card ${previewHat==='none'?'selected':''}" onclick="selectItem('none')"><div>🚫 None</div></div>`;
+            myItems.forEach(i => {
+                list.innerHTML += `<div class="item-card ${previewHat===i?'selected':''}" onclick="selectItem('${i}')"><div>${i.toUpperCase()}</div></div>`;
+            });
+        }
+        function selectItem(item) { previewHat = item; openInventory(); }
+        function equipSelectedItem() { socket.emit('equip', previewHat); document.getElementById('inventoryMenu').style.display='none'; }
+        
+        function renderPreview() {
+            const pCtx = document.getElementById('charPreview').getContext('2d');
+            pCtx.fillStyle = "#111"; pCtx.fillRect(0,0,100,100);
+            pCtx.fillStyle = "#4488FF"; pCtx.fillRect(30,30,40,40); // Body
+            // Eyes
+            pCtx.fillStyle="white"; pCtx.beginPath(); pCtx.arc(40,45,6,0,7); pCtx.fill(); pCtx.beginPath(); pCtx.arc(60,45,6,0,7); pCtx.fill();
+            pCtx.fillStyle="black"; pCtx.beginPath(); pCtx.arc(40,45,3,0,7); pCtx.fill(); pCtx.beginPath(); pCtx.arc(60,45,3,0,7); pCtx.fill();
+            // Hat
+            if(previewHat==='tophat') { pCtx.fillStyle='#111'; pCtx.fillRect(30,15,40,10); pCtx.fillRect(35,-10,30,25); }
+            if(previewHat==='crown') { pCtx.fillStyle='gold'; pCtx.font='30px Arial'; pCtx.fillText('👑',35,25); }
+            if(previewHat==='halo') { pCtx.strokeStyle='gold'; pCtx.lineWidth=2; pCtx.beginPath(); pCtx.ellipse(50, 20, 15, 5, 0, 0, Math.PI*2); pCtx.stroke(); }
+        }
 
         socket.on('authSuccess', d => {
-            localStorage.setItem('imp_user', d.user); 
-            if(d.pass) localStorage.setItem('imp_pass', d.pass);
+            localStorage.setItem('imp_user', d.user); if(d.pass) localStorage.setItem('imp_pass', d.pass);
             document.getElementById('mainMenu').style.display = 'none';
             document.getElementById('lobbyMenu').style.display = 'flex';
             document.getElementById('cpDisplay').innerText = d.money;
@@ -259,32 +238,70 @@
             socket.emit('requestLobbies');
         });
 
-        // UPDATED: Show kit menu when joining game
-        socket.on('startGame', d => {
-            myId = d.id; 
-            currentWalls = d.walls;
-            currentLobbyId = d.lobbyId;
-            document.getElementById('lobbyMenu').style.display = 'none';
-            document.getElementById('kitSelectMenu').style.display = 'flex';
-            if(d.isOwner) document.getElementById('staffPanel').style.display = 'block';
-            
-            // Remember last kit
-            if(localStorage.getItem('lastKit')) {
-                kit = localStorage.getItem('lastKit');
-                document.querySelectorAll('.kit-btn').forEach(b=>b.classList.remove('selected'));
-                document.querySelector('.kit-btn[onclick*="' + kit + '"]').classList.add('selected');
+        socket.on('shopUpdate', d => { myMoney = d.money; myItems = d.items; document.getElementById('cpDisplay').innerText = myMoney; openInventory(); });
+        socket.on('shopMsg', d => { let el = document.getElementById('shopMsg'); el.innerText = d.m; el.style.color = d.s ? '#0f0' : '#f00'; setTimeout(()=>el.innerText="", 2000); });
+        socket.on('authMsg', d => { document.getElementById('msg').innerText = d.m; document.getElementById('msg').style.color = d.s ? '#0f0' : '#f00'; });
+        socket.on('lobbyList', list => { const cont = document.getElementById('lobbyList'); cont.innerHTML = ""; if(list.length === 0) cont.innerHTML = `<div style="text-align:center;color:#666;padding:20px;">No public games.</div>`; list.forEach(l => { cont.innerHTML += `<div class="lobby-item"><div><span class="lobby-name">${l.name}</span><br><small>${l.mode} | ${l.map} | ${l.count} Players</small></div><button class="btn-green" style="width:auto;padding:5px 15px;" onclick="joinPublic('${l.id}')">JOIN</button></div>`; }); });
+        socket.on('startGame', d => { myId = d.id; currentWalls = d.walls; document.getElementById('lobbyMenu').style.display = 'none'; document.getElementById('hud').style.display = 'block'; document.getElementById('lobbyDisplay').innerText = "LOBBY: " + d.lobbyId; if(d.isOwner) document.getElementById('staffPanel').style.display = 'block'; });
+        socket.on('mapChange', d => { currentWalls = d.walls; });
+        socket.on('chatMsg', d => { const l=document.createElement('div'); l.innerHTML=`<span style="color:${d.color}">${d.user}:</span> ${d.text}`; document.getElementById('chatMsgs').appendChild(l); });
+
+        const keys={w:0,a:0,s:0,d:0,shift:0}, mouse={x:0,y:0,down:0};
+        function togglePause() { isPaused = !isPaused; document.getElementById('pauseMenu').style.display = isPaused ? 'flex' : 'none'; }
+        window.onkeydown=e=>{ if(document.activeElement.id==='chatInput'){ if(e.code==='Enter'){ socket.emit('chat', document.getElementById('chatInput').value); document.getElementById('chatInput').value=''; document.getElementById('chatInput').style.display='none'; } return; } if(e.code==='Enter'){ document.getElementById('chatInput').style.display='block'; document.getElementById('chatInput').focus(); } if(e.code==='KeyP') togglePause(); keys[e.key.toLowerCase()] = 1; if(e.code==='ShiftLeft') keys.shift=1; };
+        window.onkeyup=e=>{ keys[e.key.toLowerCase()] = 0; if(e.code==='ShiftLeft') keys.shift=0; };
+        window.onmousemove=e=>{ mouse.x=e.clientX; mouse.y=e.clientY; };
+        window.onmousedown=e=>{ if(e.button===0)mouse.down=1; }; window.onmouseup=e=>{ if(e.button===0)mouse.down=0; };
+        function createExplosion(x, y, color) { for(let i=0; i<6; i++) particles.push({x, y, vx:(Math.random()-0.5)*10, vy:(Math.random()-0.5)*10, life:15, color, size:3}); }
+
+        socket.on('state', s => {
+            if(!myId || isPaused) return;
+            const me = s.players[myId]; if(!me) return;
+            const g = s.game;
+            cam.x += (me.x - canvas.width/2 - cam.x)*0.1; cam.y += (me.y - canvas.height/2 - cam.y)*0.1;
+            ctx.fillStyle="#0a0a10"; ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.save(); ctx.translate(-cam.x, -cam.y);
+            if(g.mode==='KOTH' && g.hill){ ctx.fillStyle="rgba(68,136,255,0.15)"; ctx.fillRect(g.hill.x, g.hill.y, g.hill.w, g.hill.h); ctx.strokeStyle="white"; ctx.lineWidth=2; ctx.setLineDash([10,5]); ctx.strokeRect(g.hill.x, g.hill.y, g.hill.w, g.hill.h); ctx.setLineDash([]); }
+            ctx.fillStyle="#2d3436"; currentWalls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
+            for(let id in s.players){
+                let p = s.players[id]; if(p.dead) continue;
+                ctx.fillStyle=p.color; ctx.fillRect(p.x, p.y, p.w, p.h);
+                // Draw Hat
+                if(p.hat === 'tophat') { ctx.fillStyle='#111'; ctx.fillRect(p.x,p.y-15,40,10); ctx.fillRect(p.x+5,p.y-40,30,25); }
+                if(p.hat === 'crown') { ctx.fillStyle='gold'; ctx.font='20px Arial'; ctx.fillText('👑', p.x+10, p.y-5); }
+                if(p.hat === 'halo') { ctx.strokeStyle='gold'; ctx.lineWidth=2; ctx.beginPath(); ctx.ellipse(p.x+20, p.y-15, 15, 5, 0, 0, Math.PI*2); ctx.stroke(); }
+                // Eyes
+                let a = p.angle; let ex = Math.cos(a)*4, ey = Math.sin(a)*4;
+                ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(p.x+10, p.y+15, 6, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(p.x+30, p.y+15, 6, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = "black"; ctx.beginPath(); ctx.arc(p.x+10+ex, p.y+15+ey, 3, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(p.x+30+ex, p.y+15+ey, 3, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = "white"; ctx.font = "bold 12px Arial"; ctx.fillText(p.username, p.x, p.y-10);
+                ctx.fillStyle = "#ff4757"; ctx.fillRect(p.x, p.y-5, 40, 4); ctx.fillStyle = "#00b894"; ctx.fillRect(p.x, p.y-5, 40*(p.hp/p.maxHp), 4);
+                // Grapple Line
+                if(p.grapple.active) { ctx.beginPath(); ctx.moveTo(p.x+20,p.y+20); ctx.lineTo(p.grapple.x,p.grapple.y); ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke(); }
             }
+            s.bullets.forEach(b => { ctx.fillStyle = b.color; ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, Math.PI*2); ctx.fill(); createExplosion(b.x, b.y, b.color); });
+            particles.forEach((p,i)=>{ p.x+=p.vx; p.y+=p.vy; p.life--; p.size*=0.9; ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fill(); if(p.life<=0) particles.splice(i,1); });
+            ctx.restore();
+            let mins = Math.floor(g.timer/3600), secs = Math.ceil((g.timer%3600)/60).toString().padStart(2,'0');
+            document.getElementById('topBar').innerText = `${mins}:${secs} | ${g.mode}`;
+            document.getElementById('ammoText').innerText = `${me.ammo}/${me.maxAmmo}`;
+            document.getElementById('hpBar').style.width = (me.hp/me.maxHp)*100+"%";
+            document.getElementById('xpBar').style.width = (me.xp%100)+"%";
         });
 
-        // Rest of your original socket events and game loop (100% unchanged)
-        // ... copy-paste EVERYTHING from your old script here (chat, state, input, particles, etc.)
-        // It all works exactly the same
-
-        // For example:
-        socket.on('shopUpdate', d => { myMoney = d.money; myItems = d.items; document.getElementById('cpDisplay').innerText = myMoney; openInventory(); });
-        // ... keep all the rest exactly as you had it
-
-        // Your full game loop, input, rendering, etc. stays 100% the same
+        setInterval(() => {
+            if(!myId || isPaused) return;
+            let ang = Math.atan2(mouse.y - canvas.height/2, mouse.x - canvas.width/2);
+            socket.emit('input', {up:keys.w, down:keys.s, left:keys.a, right:keys.d, dash:keys.shift, shoot:mouse.down, grapple:mouse.down&&keys.shift===0?0:mouse.down, angle:ang, gx:mouse.x+cam.x, gy:mouse.y+cam.y});
+            // Note: Grapple triggering logic depends on your mouse mapping. Standard is usually R-Click or Key. Here using mouse.down logic? No, update to use keys correctly.
+            // Actually, let's fix the input send for grapple:
+            // Right click is usually button 2.
+        }, 1000/60);
+        
+        // FIX MOUSE INPUT FOR GRAPPLE
+        window.onmousedown=e=>{ if(e.button===0)mouse.down=1; if(e.button===2) socket.emit('input', {grapple:true, gx:mouse.x+cam.x, gy:mouse.y+cam.y}); };
+        window.onmouseup=e=>{ if(e.button===0)mouse.down=0; if(e.button===2) socket.emit('input', {grapple:false}); };
+        window.oncontextmenu=e=>e.preventDefault();
     </script>
 </body>
 </html>

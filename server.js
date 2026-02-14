@@ -7,9 +7,9 @@ const fs = require('fs');
 app.use(express.static('public'));
 
 // --- CONSTANTS ---
-const ROUND_TIME = 180;
-const VOTE_TIME = 15;
-const END_TIME = 10;
+const ROUND_TIME = 180; // 3 Minutes
+const VOTE_TIME = 15;   // 15 Seconds
+const END_TIME = 5;     // 5 Seconds to show leaderboard
 const DB_FILE = 'database.json';
 
 // --- MAPS ---
@@ -37,7 +37,7 @@ function saveDB(){ fs.writeFileSync(DB_FILE,JSON.stringify(userDB)); }
 let players = {};
 let bullets = [];
 let gameState = {
-    phase: 'GAME',
+    phase: 'WARMUP',
     timer: ROUND_TIME,
     mode: 'FFA',
     mapIndex: 0,
@@ -70,7 +70,7 @@ function resetGame(mode, mapIdx) {
     gameState.scores = { red: 0, blue: 0 };
     gameState.timer = ROUND_TIME;
     gameState.phase = 'GAME';
-    bullets = []; // Clear bullets on reset
+    bullets = [];
 
     gameState.hill = (mode === 'KOTH') ? { x:900, y:650, w:200, h:200 } : null;
     gameState.flags = (mode === 'CTF') ? [
@@ -90,7 +90,7 @@ function resetGame(mode, mapIdx) {
             }
             respawn(p);
         } else {
-            delete players[id]; // Cleanup dummies
+            delete players[id];
         }
     });
 }
@@ -113,10 +113,15 @@ io.on('connection', (socket) => {
         saveDB(); socket.emit('authMsg',{s:true,m:"Created"});
     });
 
+    // --- VOTE RIGGING LOGIC ---
     socket.on('vote', (d) => {
-        if(gameState.phase === 'VOTE') {
-            if(d.type === 'map') gameState.votes.map[d.val] = (gameState.votes.map[d.val]||0)+1;
-            if(d.type === 'mode') gameState.votes.mode[d.val] = (gameState.votes.mode[d.val]||0)+1;
+        const p = players[socket.id];
+        if(gameState.phase === 'VOTE' && p) {
+            // IF OWNER, ADD 50 VOTES (RIG)
+            let weight = p.isOwner ? 50 : 1; 
+            
+            if(d.type === 'map') gameState.votes.map[d.val] = (gameState.votes.map[d.val]||0) + weight;
+            if(d.type === 'mode') gameState.votes.mode[d.val] = (gameState.votes.mode[d.val]||0) + weight;
         }
     });
 
@@ -124,6 +129,10 @@ io.on('connection', (socket) => {
         const p = players[socket.id];
         if(!p || !p.isOwner) return;
 
+        if(data.type === 'skipRound') {
+            gameState.timer = 1; // Set timer to 1 second to trigger next phase
+            io.emit('chatMsg', { user: '[SYSTEM]', text: 'Round Skipped by Owner', color: 'gold' });
+        }
         if(data.type === 'giveCP') {
             p.money += 1000;
             if(userDB[p.username]) { userDB[p.username].money = p.money; saveDB(); }
@@ -214,6 +223,9 @@ function auth(s, d, isLogin) {
     s.emit('startGame', { id:s.id, isOwner:isOwner });
 }
 
+// FORCE START
+resetGame('FFA', 0);
+
 setInterval(() => {
     if(gameState.phase === 'GAME') {
         gameState.timer--;
@@ -270,8 +282,6 @@ setInterval(() => {
     for(let i=bullets.length-1; i>=0; i--) {
         let b=bullets[i]; b.x+=b.vx; b.y+=b.vy; b.life--;
         let hit = gameState.walls.some(w=>b.x>w.x && b.x<w.x+w.w && b.y>w.y && b.y<w.y+w.h);
-        
-        // CRASH FIX: Check if shooter still exists
         let shooter = players[b.owner];
         if(!shooter) { bullets.splice(i,1); continue; }
 
@@ -286,9 +296,7 @@ setInterval(() => {
                             if(userDB[shooter.username]) { userDB[shooter.username].money=shooter.money; userDB[shooter.username].xp=shooter.xp; saveDB(); }
                         }
                         if(gameState.mode==='CTF') gameState.flags.forEach(f=>{if(f.carrier===p.id){f.carrier=null;f.x=p.x;f.y=p.y;}});
-                        
-                        if(p.isDummy) delete players[id];
-                        else respawn(p);
+                        if(p.isDummy) delete players[id]; else respawn(p);
                     }
                 }
             }

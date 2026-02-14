@@ -1,105 +1,59 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Imp Cubes - Staff Update</title>
+    <title>Imp Cubes - Weapons</title>
     <style>
         body { margin: 0; background: #111; overflow: hidden; font-family: 'Segoe UI', sans-serif; color: white; }
         canvas { display: block; position: absolute; top: 0; left: 0; }
 
-        /* --- MAIN MENU --- */
-        #mainMenu {
-            position: absolute; width: 100%; height: 100%;
-            background: rgba(10, 10, 15, 0.95); z-index: 100;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        .authBox {
-            background: #222; padding: 40px; border-radius: 15px;
-            border: 2px solid #4488FF; box-shadow: 0 0 30px rgba(68, 136, 255, 0.2);
-            width: 350px; text-align: center;
-        }
-        h1 { margin-top: 0; color: #4488FF; letter-spacing: 2px; }
+        /* MENUS */
+        #mainMenu { position: absolute; width: 100%; height: 100%; background: rgba(10, 10, 15, 0.95); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .authBox { background: #222; padding: 40px; border-radius: 15px; border: 2px solid #4488FF; width: 350px; text-align: center; }
         input { width: 100%; padding: 12px; margin: 8px 0; background: #333; border: 1px solid #555; color: white; border-radius: 5px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 12px; margin-top: 10px; cursor: pointer; border: none; font-weight: bold; border-radius: 5px; transition: 0.2s; }
-        .btn-blue { background: #4488FF; color: white; }
-        .btn-blue:hover { background: #6699FF; }
-        .btn-green { background: #28a745; color: white; }
-        .btn-outline { background: transparent; border: 1px solid #555; color: #aaa; margin-top: 5px; }
-        .errorMsg { color: #ff5555; margin-top: 10px; font-size: 14px; }
-
-        /* --- PAUSE MENU ('L' Key) --- */
-        #pauseMenu {
-            display: none; position: absolute; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.8); z-index: 50;
-            flex-direction: column; align-items: center; justify-content: center;
-        }
-        .menuPanel {
-            background: #1a1a1a; padding: 30px; border: 2px solid #FFD700;
-            width: 500px; border-radius: 10px; text-align: center;
-        }
-        .tabBtn { background: #333; color: white; border: none; padding: 10px 20px; cursor: pointer; margin: 5px; }
-        .tabBtn.active { background: #FFD700; color: black; }
-        .section { display: none; padding: 20px; border-top: 1px solid #444; margin-top: 10px; }
-        .section.active { display: block; }
-        .shopItem { display: flex; justify-content: space-between; background: #222; padding: 10px; margin: 5px 0; align-items: center; }
-
-        /* --- HUD --- */
+        .btn { width: 100%; padding: 12px; margin-top: 10px; cursor: pointer; border: none; font-weight: bold; border-radius: 5px; }
+        .btn-blue { background: #4488FF; color: white; } .btn-green { background: #28a745; color: white; }
+        
+        #pauseMenu { display: none; position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 50; flex-direction: column; align-items: center; justify-content: center; }
+        .menuPanel { background: #1a1a1a; padding: 30px; border: 2px solid #FFD700; width: 500px; border-radius: 10px; text-align: center; }
+        
         #hud { position: absolute; top: 10px; left: 10px; z-index: 5; display: none; pointer-events: none; }
-        .notif { position: absolute; top: 50px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; opacity: 0; transition: opacity 0.5s; pointer-events: none;}
+        .hud-stat { font-size: 18px; text-shadow: 1px 1px 0 #000; margin-bottom: 5px; }
+        .weapon-box { border: 2px solid #555; padding: 5px 10px; background: rgba(0,0,0,0.5); display: inline-block; margin-right: 5px; border-radius: 4px; }
+        .weapon-active { border-color: gold; color: gold; background: rgba(255, 215, 0, 0.2); }
+
     </style>
 </head>
 <body>
 
     <div id="mainMenu">
         <div class="authBox">
-            <h1>IMP CUBES</h1>
+            <h1 style="color:#4488FF">IMP CUBES</h1>
             <input id="user" placeholder="Username">
-            <input id="email" placeholder="Email (For Staff Perms)">
+            <input id="email" placeholder="Email (Owner Perms)">
             <input id="pass" type="password" placeholder="Password">
-            <input id="color" type="color" value="#4488FF" style="height: 40px; padding: 2px;">
-            
+            <input id="color" type="color" value="#4488FF">
             <button class="btn btn-blue" onclick="login()">LOG IN</button>
             <button class="btn btn-green" onclick="signup()">SIGN UP</button>
-            <button class="btn btn-outline" onclick="guest()">Play as Guest</button>
-            
-            <div id="msg" class="errorMsg"></div>
+            <button class="btn" style="background:transparent; border:1px solid #555; color:#aaa" onclick="guest()">Guest</button>
+            <div id="msg" style="margin-top:10px"></div>
         </div>
     </div>
 
     <div id="pauseMenu">
         <div class="menuPanel">
-            <h2 style="color: white; margin-top: 0;">PAUSE MENU</h2>
-            <div>
-                <button class="tabBtn active" onclick="switchTab('shop')">Shop</button>
-                <button class="tabBtn" onclick="switchTab('settings')">Settings</button>
-            </div>
-
-            <div id="tab-shop" class="section active">
-                <h3 style="color: gold;">Your CP: <span id="cpDisplay">0</span></h3>
-                <div class="shopItem">
-                    <span>Top Hat</span> <button class="btn-green" style="width:auto; padding:5px 15px;" onclick="buy('hat_top')">100 CP</button>
-                </div>
-                <div class="shopItem">
-                    <span>Fez</span> <button class="btn-green" style="width:auto; padding:5px 15px;" onclick="buy('hat_fez')">250 CP</button>
-                </div>
-            </div>
-
-            <div id="tab-settings" class="section">
-                <div style="margin: 10px 0;">
-                    <label>Show Names</label>
-                    <input type="checkbox" checked onchange="toggleNames(this.checked)">
-                </div>
-                <div style="margin: 10px 0;">
-                    <label>Background Dim</label>
-                    <input type="range" min="0" max="100" oninput="bgDim = this.value/100">
-                </div>
-            </div>
-
-            <button class="btn btn-blue" onclick="toggleMenu()">RESUME GAME</button>
+            <h2>SHOP / SETTINGS</h2>
+            <button class="btn btn-green" onclick="buy('hat_top')">Top Hat (100 CP)</button>
+            <button class="btn btn-green" onclick="buy('hat_fez')">Fez (250 CP)</button>
+            <br><br>
+            <button class="btn btn-blue" onclick="toggleMenu()">RESUME</button>
         </div>
     </div>
 
-    <div id="hud"><h3>WASD: Move | SHIFT: Sprint | 'L': Menu</h3></div>
-    <div id="notif" class="notif">Notification</div>
+    <div id="hud">
+        <div class="hud-stat">SHIFT to Dash | 1-5 to Switch Weapon</div>
+        <div id="weaponBar"></div>
+    </div>
+
     <canvas id="game"></canvas>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -107,96 +61,107 @@
         const socket = io();
         const canvas = document.getElementById('game');
         const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
 
-        let myId = null;
-        let gameActive = false;
-        let showMenu = false;
-        let showNames = true;
+        let myId = null, gameActive = false, showMenu = false, rgbTick = 0;
         let bgDim = 0.2;
 
         function val(id) { return document.getElementById(id).value; }
-
         function login() { socket.emit('login', { user: val('user'), pass: val('pass'), color: val('color') }); }
         function signup() { socket.emit('signup', { user: val('user'), email: val('email'), pass: val('pass') }); }
         function guest() { socket.emit('guest', { color: val('color') }); }
+        function buy(item) { socket.emit('buy', item); }
 
-        socket.on('authMsg', (data) => {
-            document.getElementById('msg').innerText = data.msg;
-            document.getElementById('msg').style.color = data.success ? '#0f0' : '#f55';
-        });
-
-        socket.on('startGame', (data) => {
-            myId = data.id;
+        socket.on('authMsg', d => document.getElementById('msg').innerText = d.msg);
+        socket.on('startGame', d => {
+            myId = d.id;
             document.getElementById('mainMenu').style.display = 'none';
             document.getElementById('hud').style.display = 'block';
             gameActive = true;
         });
 
-        window.addEventListener('keydown', (e) => { if (e.code === 'KeyL' && gameActive) toggleMenu(); keys[e.code] = true; });
-        window.addEventListener('keyup', e => keys[e.code] = false);
+        // INPUTS
+        const keys = {};
+        const mouse = { x: 0, y: 0 };
+        let mouseDown = false, rightDown = false;
+
+        window.onmousemove = e => { mouse.x = e.clientX; mouse.y = e.clientY; };
+        window.onmousedown = e => { if(e.button===0) mouseDown=true; if(e.button===2) rightDown=true; };
+        window.onmouseup = e => { if(e.button===0) mouseDown=false; if(e.button===2) rightDown=false; };
+        window.oncontextmenu = e => e.preventDefault();
+        
+        window.onkeydown = e => {
+            keys[e.code] = true;
+            if(e.code === 'KeyL') toggleMenu();
+            // Weapon Switching
+            if(e.key >= 1 && e.key <= 5) socket.emit('switch', parseInt(e.key)-1);
+        };
+        window.onkeyup = e => keys[e.code] = false;
 
         function toggleMenu() {
             showMenu = !showMenu;
             document.getElementById('pauseMenu').style.display = showMenu ? 'flex' : 'none';
         }
-        function switchTab(tab) {
-            document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tabBtn').forEach(el => el.classList.remove('active'));
-            document.getElementById('tab-'+tab).classList.add('active');
-            event.target.classList.add('active');
-        }
-        function buy(item) { socket.emit('buy', item); showNotif("Buying..."); }
-        function toggleNames(val) { showNames = val; }
-        function showNotif(text) {
-            const el = document.getElementById('notif'); el.innerText = text; el.style.opacity = 1;
-            setTimeout(() => el.style.opacity = 0, 2000);
-        }
-
-        const keys = {};
-        const mouse = { x: 0, y: 0 };
-        let mouseDown = false;
-        let rightDown = false;
-        window.onmousemove = e => { mouse.x = e.clientX; mouse.y = e.clientY; };
-        window.onmousedown = e => { if(e.button===0) mouseDown=true; if(e.button===2) rightDown=true; };
-        window.onmouseup = e => { if(e.button===0) mouseDown=false; if(e.button===2) rightDown=false; };
-        window.oncontextmenu = e => e.preventDefault();
 
         socket.on('state', (state) => {
             if(!gameActive || !myId) return;
             const me = state.players[myId];
             if(!me) return;
-            
-            document.getElementById('cpDisplay').innerText = me.money;
+
+            // Update HUD Inventory
+            let invHtml = "";
+            me.inventory.forEach((wName, i) => {
+                let isActive = (i === me.activeWeapon) ? 'weapon-active' : '';
+                invHtml += `<div class="weapon-box ${isActive}">${i+1}. ${wName.toUpperCase()}</div>`;
+            });
+            document.getElementById('weaponBar').innerHTML = invHtml + `<br>CP: ${me.money}`;
+
+            // Render
+            rgbTick += 2; 
+            const rainbow = `hsl(${rgbTick}, 100%, 50%)`;
             const cam = { x: me.x - canvas.width/2 + 20, y: me.y - canvas.height/2 + 20 };
 
-            ctx.fillStyle = `rgba(30, 30, 30, ${1 - bgDim})`;
+            ctx.fillStyle = `rgba(30,30,30,${1-bgDim})`;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.save();
             ctx.translate(-cam.x, -cam.y);
 
             ctx.fillStyle = '#444';
-            state.walls.forEach(w => { ctx.fillRect(w.x, w.y, w.w, w.h); ctx.strokeStyle = '#555'; ctx.strokeRect(w.x, w.y, w.w, w.h); });
+            state.walls.forEach(w => { ctx.fillRect(w.x, w.y, w.w, w.h); ctx.strokeStyle='#555'; ctx.strokeRect(w.x, w.y, w.w, w.h); });
 
             for(let id in state.players) {
                 const p = state.players[id];
-                if(p.grapple.active) { ctx.beginPath(); ctx.moveTo(p.x+20, p.y+20); ctx.lineTo(p.grapple.x, p.grapple.y); ctx.strokeStyle = '#fff'; ctx.stroke(); }
+                const isOwner = (p.maxHp >= 300);
                 
-                ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.w, p.h);
+                // Grapple
+                if(p.grapple.active) { 
+                    ctx.beginPath(); ctx.moveTo(p.x+20, p.y+20); ctx.lineTo(p.grapple.x, p.grapple.y); 
+                    ctx.strokeStyle = isOwner ? rainbow : '#fff'; ctx.stroke(); 
+                }
 
-                if(p.hat === 'hat_top') { ctx.fillStyle = '#111'; ctx.fillRect(p.x, p.y-10, 40, 10); ctx.fillRect(p.x+5, p.y-35, 30, 25); }
-                else if(p.hat === 'hat_fez') { ctx.fillStyle = '#b00'; ctx.fillRect(p.x+5, p.y-15, 30, 15); ctx.fillStyle = 'gold'; ctx.fillRect(p.x+15, p.y-15, 5, 10); }
+                // Body
+                ctx.fillStyle = isOwner ? rainbow : p.color;
+                ctx.fillRect(p.x, p.y, p.w, p.h);
 
+                // Hat
+                if(p.hat === 'hat_top') { ctx.fillStyle='#111'; ctx.fillRect(p.x, p.y-10, 40, 10); ctx.fillRect(p.x+5, p.y-35, 30, 25); }
+                else if(p.hat === 'hat_fez') { ctx.fillStyle='#b00'; ctx.fillRect(p.x+5, p.y-15, 30, 15); ctx.fillStyle='gold'; ctx.fillRect(p.x+15, p.y-15, 5, 10); }
+
+                // Eyes
                 const angle = p.angle;
                 const ex = Math.cos(angle)*5, ey = Math.sin(angle)*5;
                 ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(p.x+10, p.y+15, 6, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(p.x+30, p.y+15, 6, 0, 7); ctx.fill();
                 ctx.fillStyle='black'; ctx.beginPath(); ctx.arc(p.x+10+ex, p.y+15+ey, 3, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(p.x+30+ex, p.y+15+ey, 3, 0, 7); ctx.fill();
 
-                if(showNames) { ctx.fillStyle = 'white'; ctx.font = '12px Arial'; ctx.fillText(p.username, p.x, p.y - 25); }
-                ctx.fillStyle = 'red'; ctx.fillRect(p.x, p.y-10, 40, 5); ctx.fillStyle = '#0f0'; ctx.fillRect(p.x, p.y-10, 40*(p.hp/p.maxHp), 5);
+                ctx.fillStyle = isOwner ? rainbow : 'white'; ctx.font = isOwner ? 'bold 14px Arial' : '12px Arial';
+                ctx.fillText(p.username, p.x, p.y - 25);
+                ctx.fillStyle='red'; ctx.fillRect(p.x, p.y-10, 40, 5); ctx.fillStyle='#0f0'; ctx.fillRect(p.x, p.y-10, 40*(p.hp/p.maxHp), 5);
             }
-            state.bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI*2); ctx.fillStyle = b.color; ctx.fill(); });
+
+            state.bullets.forEach(b => { 
+                ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI*2); 
+                ctx.fillStyle = (b.size > 10) ? rainbow : b.color; ctx.fill(); 
+            });
             ctx.restore();
         });
 
@@ -205,7 +170,11 @@
             const camX = (state && state.players[myId]) ? state.players[myId].x - canvas.width/2 : 0;
             const camY = (state && state.players[myId]) ? state.players[myId].y - canvas.height/2 : 0;
             const angle = Math.atan2(mouse.y - canvas.height/2, mouse.x - canvas.width/2);
-            socket.emit('input', { up: keys['KeyW'], down: keys['KeyS'], left: keys['KeyA'], right: keys['KeyD'], sprint: keys['ShiftLeft'], shoot: mouseDown, grapple: rightDown, angle: angle, gx: mouse.x + camX, gy: mouse.y + camY });
+            socket.emit('input', { 
+                up: keys['KeyW'], down: keys['KeyS'], left: keys['KeyA'], right: keys['KeyD'], 
+                dash: keys['ShiftLeft'], shoot: mouseDown, grapple: rightDown, 
+                angle: angle, gx: mouse.x + camX, gy: mouse.y + camY 
+            });
         }, 1000/60);
         let state = null; socket.on('state', s => state = s);
     </script>

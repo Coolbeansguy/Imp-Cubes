@@ -3,116 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <title>Imp Cubes: Ultimate</title>
-    <link rel="icon" type="image/png" href="https://media.discordapp.net/attachments/1286433136804106282/1472114823369330689/image.png?ex=69916544&is=699013c4&hm=6e53418ccc28321ed6703073c2da8530a6e16e4680acae446d8a83c2372b6352&=&format=webp&quality=lossless">
-    
+    <link rel="icon" type="image/png" href="https://media.discordapp.net/attachments/1286433136804106282/1472114823369330689/image.png?ex=69916544&is=699013c4&hm=6e53418ccc28321ed6703073c2da8530a6e16e4680acae446d8a83c2372b6352">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #4488FF; --accent: #FFD700; --bg: #0a0a10; }
         body { margin: 0; background: var(--bg); overflow: hidden; font-family: 'Nunito', sans-serif; color: white; touch-action: none; user-select: none; }
         canvas { display: block; }
-
         .glass { background: rgba(30,35,45,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); text-align: center; position: relative; }
         .overlay { position: absolute; width: 100%; height: 100%; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.9); }
-        
-        .site-logo { width: 150px; height: 150px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 0 30px var(--primary); }
-        h1, h2 { font-family: 'Fredoka One'; color: var(--primary); margin-top: 0; }
-        h3 { font-family: 'Fredoka One'; margin: 5px 0; color: #aaa; }
+        .site-logo { width: 150px; height: 150px; border-radius: 20px; margin-bottom: 25px; box-shadow: 0 0 30px var(--primary); }
+        h2 { font-family: 'Fredoka One'; color: var(--primary); margin: 0; margin-bottom: 15px; }
         .btn { width: 100%; padding: 12px; margin-top: 8px; border: none; border-radius: 8px; font-family: 'Fredoka One'; cursor: pointer; text-transform: uppercase; transition: 0.1s; }
-        .btn:hover { filter: brightness(1.2); }
-        .btn-blue { background: var(--primary); color: white; } .btn-green { background: #00b894; color: white; } .btn-red { background: #ff4757; color: white; } .btn-purple { background: #9b59b6; color: white; }
+        .btn-blue { background: var(--primary); color: white; } .btn-green { background: #00b894; color: white; }
         input, select { width: 100%; padding: 12px; margin-bottom: 10px; background: rgba(0,0,0,0.5); border: 2px solid #444; color: white; border-radius: 8px; box-sizing: border-box; }
-        
         #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
         #topBar { position: absolute; top: 15px; width: 100%; text-align: center; font-family: 'Fredoka One'; font-size: 24px; text-shadow: 2px 2px 0 #000; }
-        #controlsInfo { position: absolute; top: 15px; right: 15px; text-align: right; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; font-size: 12px; pointer-events: none; border: 1px solid #444; }
-        .key { background: white; color: black; padding: 1px 4px; border-radius: 3px; font-weight: bold; margin-left: 5px; }
-        #statsArea { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); text-align: center; width: 300px; }
-        .bar { height: 8px; background: #444; border-radius: 4px; margin-top: 5px; overflow: hidden; }
-        .fill { height: 100%; transition: width 0.1s; }
-        #chatBox { position: absolute; bottom: 20px; left: 20px; width: 300px; pointer-events: auto; }
-        #chatMsgs { height: 150px; overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-end; mask-image: linear-gradient(to top, black 80%, transparent 100%); text-shadow: 1px 1px 2px black; font-weight: bold; font-size: 13px; }
-        #chatInput { background: rgba(0,0,0,0.6); display: none; margin: 0; color: white; border: 1px solid #666; border-radius: 4px; }
-        
         #lobbyMenu { display: none; } 
         #lobbyContainer { display: flex; gap: 20px; text-align: left; }
         #lobbyList { flex: 1.5; background: rgba(0,0,0,0.3); border-radius: 8px; height: 350px; overflow-y: auto; padding: 10px; }
-        #createPanel { flex: 1; border-left: 1px solid #444; padding-left: 20px; display: flex; flex-direction: column; }
-        .lobby-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; margin-bottom: 5px; border-radius: 6px; }
-        .lobby-name { font-weight: bold; font-size: 14px; color: white; }
-        .logout-link { color: #ff4757; font-size: 12px; cursor: pointer; text-decoration: underline; margin-top: 15px; display: inline-block; pointer-events: auto; }
-
-        .toggle-cont { display: flex; align-items: center; gap: 10px; margin: 10px 0; font-size: 14px; }
-        input[type="checkbox"] { width: auto; margin: 0; }
+        #createPanel { flex: 1; border-left: 1px solid #444; padding-left: 20px; }
+        .lobby-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 12px; margin-bottom: 8px; border-radius: 8px; }
+        #chatBox { position: absolute; bottom: 20px; left: 20px; width: 300px; pointer-events: auto; }
+        #chatMsgs { height: 150px; overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-end; font-weight: bold; font-size: 13px; }
+        #chatInput { background: rgba(0,0,0,0.6); display: none; width: 100%; color: white; border: 1px solid #666; border-radius: 4px; }
     </style>
 </head>
 <body>
-    <div id="mainMenu" class="overlay" style="z-index: 200;">
-        <div class="glass" style="width: 350px; border: 2px solid var(--primary);">
+
+    <div id="mainMenu" class="overlay">
+        <div class="glass" style="width: 350px;">
             <img src="https://media.discordapp.net/attachments/1286433136804106282/1472114823369330689/image.png?ex=69916544&is=699013c4&hm=6e53418ccc28321ed6703073c2da8530a6e16e4680acae446d8a83c2372b6352" class="site-logo">
             <input id="user" placeholder="Username">
             <input id="pass" type="password" placeholder="Password">
-            <input id="email" placeholder="Email (Owner Only)">
             <button class="btn btn-blue" onclick="auth('login')">LOGIN</button>
             <button class="btn btn-green" onclick="auth('signup')">SIGN UP</button>
             <div id="msg" style="margin-top:10px; font-size:12px;"></div>
         </div>
     </div>
 
-    <div id="lobbyMenu" class="overlay" style="z-index: 199;">
+    <div id="lobbyMenu" class="overlay">
         <div class="glass" style="width: 750px;">
             <h2>SERVER BROWSER</h2>
             <div id="lobbyContainer">
-                <div id="lobbyList">
-                    <div style="color:#888; text-align:center; padding:20px;">Loading servers...</div>
-                </div>
-
+                <div id="lobbyList"></div>
                 <div id="createPanel">
                     <h3>CREATE ROOM</h3>
-                    <input id="newLobbyName" placeholder="Room Name">
+                    <input id="newLobbyName" placeholder="Lobby Name">
                     <select id="modeSelect">
                         <option value="FFA">FFA</option>
-                        <option value="TDM">TEAM DEATHMATCH</option>
-                        <option value="KOTH">KING OF THE HILL</option>
+                        <option value="KOTH">KOTH</option>
                         <option value="ZOMBIES">ZOMBIES</option>
-                        <option value="JUGGERNAUT">JUGGERNAUT</option>
                     </select>
-                    <select id="mapSelect">
-                        <option value="0">ARENA</option>
-                        <option value="1">MAZE</option>
-                        <option value="2">TOWERS</option>
-                        <option value="3">OPEN FIELD</option>
-                    </select>
-                    <div class="toggle-cont">
-                        <input type="checkbox" id="privateCheck">
-                        <label>Private (Hidden)</label>
-                    </div>
                     <button class="btn btn-green" onclick="createLobby()">START SERVER</button>
-                    <h3 style="margin-top:20px;">JOIN CODE</h3>
-                    <div style="display:flex; gap:5px;">
-                        <input id="lobbyCodeInput" placeholder="Code" style="margin:0; text-transform:uppercase;">
-                        <button class="btn btn-blue" style="margin:0; width:60px;" onclick="joinPrivate()">GO</button>
-                    </div>
-                    <div class="logout-link" onclick="logout()">Logout Account</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="pauseMenu" class="overlay" style="display:none;">
-        <div class="glass" style="width: 350px;">
-            <h2>PAUSED</h2>
-            <div class="menu-grid">
-                <button class="btn btn-blue" onclick="togglePause()">RESUME</button>
-                <button class="btn btn-red" onclick="location.reload()">LEAVE GAME</button>
-            </div>
-            <div id="staffPanel" style="display:none; border-top:1px solid #555; margin-top:20px; padding-top:10px;">
-                <h3 style="color:var(--accent)">STAFF PANEL</h3>
-                <div class="menu-grid">
-                    <button class="btn btn-purple" onclick="socket.emit('staffAction',{type:'toggleGod'})">GOD MODE</button>
-                    <button class="btn btn-blue" onclick="socket.emit('staffAction',{type:'spawnDummy'})">SPAWN DUMMY</button>
-                    <button class="btn btn-green" onclick="socket.emit('staffAction',{type:'giveCP'})">GIVE CP</button>
-                    <button class="btn btn-red" onclick="socket.emit('staffAction',{type:'skipRound'})">SKIP ROUND</button>
                 </div>
             </div>
         </div>
@@ -120,17 +63,10 @@
 
     <div id="hud">
         <div id="topBar"></div>
-        <div id="lobbyDisplay">LOBBY: ????</div>
-        <div id="controlsInfo">
-            <div>Move <span class="key">WASD</span></div><div>Dash <span class="key">SHIFT</span></div><div>Shoot <span class="key">L-CLICK</span></div><div>Menu <span class="key">P</span></div>
+        <div id="chatBox"><div id="chatMsgs"></div><input id="chatInput" placeholder="Press Enter to Chat"></div>
+        <div id="statsArea" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 300px;">
+            <div class="bar" style="height: 10px;"><div id="hpBar" class="fill" style="background:#ff4757; width: 100%;"></div></div>
         </div>
-        <div id="statsArea">
-            <div id="ammoText" style="font-family:'Fredoka One'; font-size:24px;">30 / 30</div>
-            <div class="bar"><div id="reloadBar" class="fill" style="width:0%; background:white;"></div></div>
-            <div class="bar" style="height:10px;"><div id="hpBar" class="fill" style="background:#ff4757;"></div></div>
-            <div class="bar" style="height:4px;"><div id="xpBar" class="fill" style="background:#a29bfe;"></div></div>
-        </div>
-        <div id="chatBox"><div id="chatMsgs"></div><input id="chatInput" placeholder="Message... (/help)"></div>
     </div>
 
     <canvas id="game"></canvas>
@@ -140,169 +76,92 @@
         const socket = io();
         const canvas = document.getElementById('game');
         const ctx = canvas.getContext('2d');
-        let myId=null, kit='assault', cam={x:0,y:0}, isPaused=false, particles=[], currentWalls=[];
+        let myId = null, cam = {x:0, y:0}, currentWalls = [], currentMode = "FFA";
 
         const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
         window.onresize = resize; resize();
 
-        // --- AUTO LOGIN & AUTH ---
-        window.onload = () => {
-            const u = localStorage.getItem('imp_user'), p = localStorage.getItem('imp_pass');
-            if(u && p) {
-                document.getElementById('user').value = u;
-                document.getElementById('pass').value = p;
-                auth('login');
-            }
-        };
-
-        function auth(t) { 
-            socket.emit(t, {user: val('user'), pass: val('pass'), email: val('email'), kit: kit}); 
-        }
-
-        function logout() { localStorage.clear(); location.reload(); }
+        // Auth Logic
+        function auth(t) { socket.emit(t, {user: val('user'), pass: val('pass')}); }
         function val(id) { return document.getElementById(id).value; }
+        function createLobby() { socket.emit('createLobby', { name: val('newLobbyName'), mode: val('modeSelect') }); }
+        function joinPublic(id) { socket.emit('joinLobby', id); }
 
         socket.on('authSuccess', d => {
-            localStorage.setItem('imp_user', d.user);
-            if(d.pass) localStorage.setItem('imp_pass', d.pass);
             document.getElementById('mainMenu').style.display = 'none';
             document.getElementById('lobbyMenu').style.display = 'flex';
             socket.emit('requestLobbies');
         });
 
-        socket.on('authMsg', d => { 
-            document.getElementById('msg').innerText = d.m; 
-            document.getElementById('msg').style.color = d.s ? '#0f0' : '#f00'; 
-        });
-
-        // --- LOBBY LIST ---
-        function createLobby() {
-            socket.emit('createLobby', { 
-                name: val('newLobbyName'), 
-                isPublic: !document.getElementById('privateCheck').checked,
-                mode: val('modeSelect'),
-                map: val('mapSelect')
-            });
-        }
-
-        function joinPrivate() { socket.emit('joinLobby', val('lobbyCodeInput')); }
-        function joinPublic(id) { socket.emit('joinLobby', id); }
-
         socket.on('lobbyList', list => {
             const cont = document.getElementById('lobbyList'); cont.innerHTML = "";
-            if(list.length === 0) cont.innerHTML = `<div style="text-align:center;color:#666;padding:20px;">No public games.</div>`;
             list.forEach(l => {
                 cont.innerHTML += `<div class="lobby-item">
-                    <div><span class="lobby-name">${l.name}</span><br><small>${l.mode} | ${l.count} Players</small></div>
-                    <button class="btn btn-green" style="width:auto;padding:5px 15px;" onclick="joinPublic('${l.id}')">JOIN</button>
+                    <div><b>${l.name}</b><br><small>${l.mode} | ${l.count} Players</small></div>
+                    <button class="btn-green" style="width:auto;padding:5px 10px;" onclick="joinPublic('${l.id}')">JOIN</button>
                 </div>`;
             });
         });
 
+        // FIXED: This listener ensures map and mode update when joining
         socket.on('startGame', d => {
-            myId=d.id; currentWalls=d.walls;
-            document.getElementById('lobbyMenu').style.display='none';
-            document.getElementById('hud').style.display='block';
-            document.getElementById('lobbyDisplay').innerText = "LOBBY: " + d.lobbyId;
-            if(d.isOwner) document.getElementById('staffPanel').style.display='block';
+            myId = d.id;
+            currentWalls = d.walls;
+            currentMode = d.mode;
+            document.getElementById('lobbyMenu').style.display = 'none';
+            document.getElementById('hud').style.display = 'block';
         });
 
-        socket.on('mapChange', d => { currentWalls = d.walls; });
-        socket.on('chatMsg', d => { 
-            const l=document.createElement('div'); 
-            l.innerHTML=`<span style="color:${d.color}">${d.user}:</span> ${d.text}`; 
-            document.getElementById('chatMsgs').appendChild(l); 
+        // FIXED: Map Change during round
+        socket.on('mapChange', d => {
+            currentWalls = d.walls;
+            currentMode = d.mode;
         });
 
-        // --- INPUT HANDLING ---
-        const keys={w:0,a:0,s:0,d:0,shift:0}, mouse={x:0,y:0,down:0};
-        function togglePause() { 
-            isPaused = !isPaused; 
-            document.getElementById('pauseMenu').style.display = isPaused ? 'flex' : 'none'; 
-        }
-
-        window.onkeydown=e=>{
-            if(document.activeElement.id==='chatInput'){
-                if(e.code==='Enter'){ 
-                    socket.emit('chat', document.getElementById('chatInput').value); 
-                    document.getElementById('chatInput').value=''; 
-                    document.getElementById('chatInput').style.display='none'; 
-                } return;
-            }
-            if(e.code==='Enter'){ document.getElementById('chatInput').style.display='block'; document.getElementById('chatInput').focus(); }
-            if(e.code==='KeyP') togglePause();
-            keys[e.key.toLowerCase()] = 1; if(e.code==='ShiftLeft') keys.shift=1;
-        };
-        window.onkeyup=e=>{ keys[e.key.toLowerCase()] = 0; if(e.code==='ShiftLeft') keys.shift=0; };
-        window.onmousemove=e=>{ mouse.x=e.clientX; mouse.y=e.clientY; };
-        window.onmousedown=e=>{ if(e.button===0)mouse.down=1; }; 
-        window.onmouseup=e=>{ if(e.button===0)mouse.down=0; };
-
-        function createExplosion(x, y, color) { 
-            for(let i=0; i<5; i++) particles.push({x, y, vx:(Math.random()-0.5)*10, vy:(Math.random()-0.5)*10, life:15, color, size:3}); 
-        }
-
-        // --- RENDER LOOP ---
+        // Game Loop Drawing
         socket.on('state', s => {
-            if(!myId || isPaused) return;
+            if(!myId) return;
             const me = s.players[myId]; if(!me) return;
             const g = s.game;
 
-            cam.x += (me.x - canvas.width/2 - cam.x)*0.1; 
-            cam.y += (me.y - canvas.height/2 - cam.y)*0.1;
-            
-            ctx.fillStyle="#0a0a10"; ctx.fillRect(0,0,canvas.width,canvas.height);
+            cam.x += (me.x - canvas.width/2 - cam.x) * 0.1;
+            cam.y += (me.y - canvas.height/2 - cam.y) * 0.1;
+
+            ctx.fillStyle = "#0a0a10"; ctx.fillRect(0,0,canvas.width,canvas.height);
             ctx.save(); ctx.translate(-cam.x, -cam.y);
 
-            // KOTH Hill Visual
-            if(g.mode==='KOTH' && g.hill){
-                ctx.fillStyle="rgba(68,136,255,0.15)";
-                ctx.fillRect(g.hill.x, g.hill.y, g.hill.w, g.hill.h);
-                ctx.strokeStyle="white"; ctx.lineWidth=2;
-                ctx.setLineDash([10,5]); ctx.strokeRect(g.hill.x, g.hill.y, g.hill.w, g.hill.h);
-                ctx.setLineDash([]);
-            }
-            
-            ctx.fillStyle="#2d3436"; currentWalls.forEach(w=>ctx.fillRect(w.x,w.y,w.w,w.h));
+            // Draw Map
+            ctx.fillStyle = "#2d3436";
+            currentWalls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
 
-            for(let id in s.players){
+            // Draw Players
+            for(let id in s.players) {
                 let p = s.players[id]; if(p.dead) continue;
-                ctx.fillStyle=p.color; ctx.fillRect(p.x,p.y,p.w,p.h);
-                // Eyes looking at mouse angle
-                ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(p.x+10,p.y+15,5,0,7); ctx.arc(p.x+30,p.y+15,5,0,7); ctx.fill();
-                ctx.fillStyle="black"; let ex=Math.cos(p.angle)*3, ey=Math.sin(p.angle)*3;
-                ctx.beginPath(); ctx.arc(p.x+10+ex,p.y+15+ey,2,0,7); ctx.arc(p.x+30+ex,p.y+15+ey,2,0,7); ctx.fill();
-                ctx.fillStyle="white"; ctx.font="bold 12px Arial"; ctx.fillText(p.username, p.x, p.y-10);
-                
-                // HP bar above head
-                ctx.fillStyle="red"; ctx.fillRect(p.x, p.y-5, 40, 4);
-                ctx.fillStyle="lime"; ctx.fillRect(p.x, p.y-5, 40*(p.hp/p.maxHp), 4);
+                ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.w, p.h);
+                ctx.fillStyle = "white"; ctx.fillText(p.username, p.x, p.y - 10);
             }
-            
-            s.bullets.forEach(b=>{ 
-                ctx.fillStyle=b.color; ctx.beginPath(); ctx.arc(b.x,b.y,5,0,7); ctx.fill(); 
-                createExplosion(b.x, b.y, b.color);
-            });
-
-            particles.forEach((p,i)=>{
-                p.x+=p.vx; p.y+=p.vy; p.life--; p.size*=0.9;
-                ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,7); ctx.fill();
-                if(p.life<=0) particles.splice(i,1);
-            });
-
             ctx.restore();
 
-            // HUD Stats
-            document.getElementById('topBar').innerText = `${g.mode} | Score: ${g.scores.red} - ${g.scores.blue}`;
-            document.getElementById('hpBar').style.width = (me.hp/me.maxHp)*100+"%";
-            document.getElementById('ammoText').innerText = `${me.ammo}/${me.maxAmmo}`;
-            document.getElementById('xpBar').style.width = (me.xp % 100) + "%";
+            document.getElementById('topBar').innerText = `${currentMode} | Score: ${g.scores.red} - ${g.scores.blue}`;
+            document.getElementById('hpBar').style.width = (me.hp / me.maxHp) * 100 + "%";
         });
 
+        // Input
+        const keys = {};
+        window.onkeydown = e => { 
+            if(e.code === 'Enter') {
+                const input = document.getElementById('chatInput');
+                if(input.style.display === 'block') {
+                    socket.emit('chat', input.value); input.value = ""; input.style.display = 'none';
+                } else { input.style.display = 'block'; input.focus(); }
+            }
+            keys[e.key.toLowerCase()] = 1; 
+        };
+        window.onkeyup = e => keys[e.key.toLowerCase()] = 0;
+
         setInterval(() => {
-            if(!myId || isPaused) return;
-            let ang = Math.atan2(mouse.y-canvas.height/2, mouse.x-canvas.width/2);
-            socket.emit('input', {up:keys.w, down:keys.s, left:keys.a, right:keys.d, dash:keys.shift, shoot:mouse.down, angle:ang, gx:mouse.x+cam.x, gy:mouse.y+cam.y});
+            if(!myId) return;
+            socket.emit('input', {up: keys.w, down: keys.s, left: keys.a, right: keys.d});
         }, 1000/60);
     </script>
 </body>

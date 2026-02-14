@@ -47,6 +47,7 @@
                 <div class="kit-btn" onclick="selKit('assault',this)">SOLDIER</div>
                 <div class="kit-btn" onclick="selKit('sniper',this)">RECON</div>
                 <div class="kit-btn" onclick="selKit('tank',this)">HEAVY</div>
+                <div class="kit-btn" onclick="selKit('ninja',this)">NINJA</div>
             </div>
             <button class="btn btn-blue" onclick="auth('login')">LOGIN</button>
             <button class="btn btn-green" onclick="auth('signup')">SIGN UP</button>
@@ -82,13 +83,15 @@
     </div>
 
     <div id="voteMenu" class="overlay" style="display:none;">
-        <div class="glass" style="width: 400px;">
+        <div class="glass" style="width: 500px;">
             <button class="close-btn" onclick="document.getElementById('voteMenu').style.display='none'">X</button>
             <h2 id="voteTitle">ROUND OVER</h2>
-            <div id="leaderboard" style="background:rgba(0,0,0,0.3); border-radius:8px; margin-bottom:15px;"></div>
+            <div id="leaderboard" style="background:rgba(0,0,0,0.3); border-radius:8px; margin-bottom:15px; padding:10px;"></div>
             <div id="voteSection">
-                <h3>VOTE NEXT</h3>
-                <div class="vote-row"><button class="btn btn-blue" onclick="vote('FFA')">FFA</button><button class="btn btn-blue" onclick="vote('KOTH')">KOTH</button><button class="btn btn-blue" onclick="vote('CTF')">CTF</button><button class="btn btn-green" onclick="vote('ZOMBIES')">ZOMBIES</button></div>
+                <h3>VOTE NEXT MODE</h3>
+                <div class="vote-row"><button class="btn btn-blue" onclick="vote('mode','FFA')">FFA</button><button class="btn btn-blue" onclick="vote('mode','KOTH')">KOTH</button><button class="btn btn-blue" onclick="vote('mode','CTF')">CTF</button><button class="btn btn-green" onclick="vote('mode','ZOMBIES')">ZOMBIES</button></div>
+                <h3>VOTE NEXT MAP</h3>
+                <div class="vote-row"><button class="btn btn-purple" onclick="vote('map',0)">ARENA</button><button class="btn btn-purple" onclick="vote('map',1)">MAZE</button></div>
             </div>
         </div>
     </div>
@@ -118,22 +121,34 @@
         window.onresize = resize; resize();
 
         let myId=null, kit='shotgun', rgbTick=0, cam={x:0,y:0}, isPaused=false, particles=[], shake=0;
+        let currentWalls = []; // Store walls locally
 
         function selKit(k, el) { kit=k; document.querySelectorAll('.kit-btn').forEach(b=>b.classList.remove('selected')); el.classList.add('selected'); }
         function val(id) { return document.getElementById(id).value; }
         function auth(t) { socket.emit(t, {user:val('user'), pass:val('pass'), email:val('email'), kit:kit}); }
         function buy(i) { socket.emit('buy', i); }
-        function vote(m) { socket.emit('vote', m); document.getElementById('voteSection').style.display='none'; }
+        function vote(type, val) { socket.emit('vote', {type, val}); document.getElementById('voteSection').style.opacity='0.5'; }
 
         socket.on('authMsg', d => { document.getElementById('msg').innerText = d.m; document.getElementById('msg').style.color = d.s?'#0f0':'#f00'; });
+        
         socket.on('startGame', d => { 
             myId=d.id; 
+            currentWalls = d.walls; // Load initial map
             document.getElementById('mainMenu').style.display='none'; 
             document.getElementById('hud').style.display='block'; 
             if(d.isOwner) document.getElementById('staffPanel').style.display='block';
         });
 
+        // --- NEW MAP CHANGE EVENT ---
+        socket.on('mapChange', d => {
+            currentWalls = d.walls;
+            document.getElementById('voteMenu').style.display='none';
+            document.getElementById('voteSection').style.opacity='1';
+            // Optional: Show a "Map Changed to X" message in chat
+        });
+
         socket.on('chatMsg', d => { if(!myId) return; const l = document.createElement('div'); l.innerHTML = `<span style="color:${d.color}">${d.user}:</span> ${d.text}`; document.getElementById('chatMsgs').appendChild(l); });
+        
         socket.on('gameover', d => {
             if(!myId) return;
             document.getElementById('voteMenu').style.display='flex';
@@ -177,12 +192,10 @@
                 if(g.mode === 'ZOMBIES') extra = ` | WAVE ${s.game.wave}`;
                 else if(g.mode !== 'FFA') extra = ` | <span style="color:#ff4757">${g.scores.red}</span> - <span style="color:#4488FF">${g.scores.blue}</span>`;
                 
-                document.getElementById('topBar').innerHTML = `${mins}:${secs} | ${g.mode}${extra}`;
-                
-                // Lives Display for Zombies Mode
-                if(g.mode === 'ZOMBIES' && !me.dead) {
-                    document.getElementById('topBar').innerHTML += ` | ❤️ ${me.lives}`;
-                }
+                let lives = '';
+                if(g.mode === 'ZOMBIES' && !me.dead) lives = ` | ❤️ ${me.lives}`;
+
+                document.getElementById('topBar').innerHTML = `${mins}:${secs} | ${g.mode}${extra}${lives}`;
                 if(me.dead) document.getElementById('topBar').innerHTML = "SPECTATING";
 
             } else if (g.phase === 'VOTE') {
@@ -204,32 +217,56 @@
 
             rgbTick+=2; const rainbow=`hsl(${rgbTick},100%,50%)`;
             
-            // Cam Logic: If dead, send mouse logic earlier, but here we just follow position
-            // But if dead, server sends px/py as the ghost camera pos.
+            // Cam Logic
             let tx = me.x - canvas.width/2 + 20, ty = me.y - canvas.height/2 + 20;
             cam.x += (tx-cam.x)*0.1; cam.y += (ty-cam.y)*0.1;
 
             ctx.fillStyle="#111216"; ctx.fillRect(0,0,canvas.width,canvas.height);
             ctx.save(); ctx.translate(-cam.x + sx, -cam.y + sy);
 
-            ctx.fillStyle='#2d3436'; s.game.walls.forEach(w=>{ ctx.fillRect(w.x,w.y,w.w,w.h); ctx.strokeStyle='#444'; ctx.lineWidth=2; ctx.strokeRect(w.x,w.y,w.w,w.h); });
+            // DRAW WALLS (Use local currentWalls variable)
+            ctx.fillStyle='#2d3436'; 
+            currentWalls.forEach(w=>{ ctx.fillRect(w.x,w.y,w.w,w.h); ctx.strokeStyle='#444'; ctx.lineWidth=2; ctx.strokeRect(w.x,w.y,w.w,w.h); });
 
             if(g.mode==='KOTH' && g.hill) { ctx.fillStyle="rgba(255,215,0,0.15)"; ctx.fillRect(g.hill.x,g.hill.y,g.hill.w,g.hill.h); ctx.strokeStyle="gold"; ctx.strokeRect(g.hill.x,g.hill.y,g.hill.w,g.hill.h); ctx.fillStyle="white"; ctx.font="bold 20px Arial"; ctx.fillText("HILL", g.hill.x+80, g.hill.y+100); }
             if(g.mode==='CTF') { g.flags.forEach(f => { ctx.fillStyle = f.team==='RED'?'#ff4757':'#4488FF'; ctx.beginPath(); ctx.arc(f.x, f.y, 15, 0, Math.PI*2); ctx.fill(); ctx.fillStyle="white"; ctx.font="10px Arial"; ctx.fillText("FLAG", f.x-10, f.y-20); }); }
 
             for(let id in s.players) {
                 let p = s.players[id];
-                if(p.dead) continue; // Don't draw spectators
+                if(p.dead) continue;
 
                 if(p.grapple.active) { ctx.beginPath(); ctx.moveTo(p.x+20,p.y+20); ctx.lineTo(p.grapple.x,p.grapple.y); ctx.strokeStyle='white'; ctx.stroke(); }
-                ctx.fillStyle = (p.isOwner && p.godMode) ? rainbow : p.color;
-                ctx.shadowBlur = 10; ctx.shadowColor = ctx.fillStyle; ctx.fillRect(p.x, p.y, p.w, p.h); ctx.shadowBlur = 0;
                 
-                // Eyes
+                // Draw Body
+                ctx.fillStyle = (p.isOwner && p.godMode) ? rainbow : p.color;
+                ctx.shadowBlur = 10; ctx.shadowColor = ctx.fillStyle; 
+                ctx.fillRect(p.x, p.y, p.w, p.h); 
+                ctx.shadowBlur = 0;
+                
+                // --- IMP CUBE FACE LOGIC ---
                 let a = p.angle;
-                ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(p.x+10,p.y+15,6,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(p.x+30,p.y+15,6,0,7); ctx.fill();
-                let ex=Math.cos(a)*3, ey=Math.sin(a)*3;
-                ctx.fillStyle="black"; ctx.beginPath(); ctx.arc(p.x+10+ex,p.y+15+ey,3,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(p.x+30+ex,p.y+15+ey,3,0,7); ctx.fill();
+                let ex = Math.cos(a)*5, ey = Math.sin(a)*5;
+
+                if (p.type === 'zombie') {
+                    // Angry Zombie Face
+                    ctx.fillStyle = "#111"; // Darker eyes
+                    // Left Eye
+                    ctx.beginPath(); ctx.arc(p.x+10+ex, p.y+15+ey, 5, 0, Math.PI*2); ctx.fill();
+                    // Right Eye
+                    ctx.beginPath(); ctx.arc(p.x+30+ex, p.y+15+ey, 5, 0, Math.PI*2); ctx.fill();
+                    // Eyebrows (Angry)
+                    ctx.strokeStyle = "#000"; ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.moveTo(p.x+5+ex, p.y+10+ey); ctx.lineTo(p.x+18+ex, p.y+15+ey); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(p.x+35+ex, p.y+10+ey); ctx.lineTo(p.x+22+ex, p.y+15+ey); ctx.stroke();
+                } else {
+                    // Cute Player Face
+                    ctx.fillStyle="white"; 
+                    ctx.beginPath(); ctx.arc(p.x+10,p.y+15,6,0,7); ctx.fill(); 
+                    ctx.beginPath(); ctx.arc(p.x+30,p.y+15,6,0,7); ctx.fill();
+                    ctx.fillStyle="black"; 
+                    ctx.beginPath(); ctx.arc(p.x+10+ex,p.y+15+ey,3,0,7); ctx.fill(); 
+                    ctx.beginPath(); ctx.arc(p.x+30+ex,p.y+15+ey,3,0,7); ctx.fill();
+                }
                 
                 if(p.hat==='tophat') { ctx.fillStyle='#111'; ctx.fillRect(p.x,p.y-15,40,10); ctx.fillRect(p.x+5,p.y-40,30,25); }
                 if(p.hat==='crown') { ctx.fillStyle='gold'; ctx.fillText("👑", p.x+12, p.y-10); }
@@ -238,15 +275,19 @@
                 ctx.fillStyle="red"; ctx.fillRect(p.x, p.y-10, 40, 5); ctx.fillStyle="#00b894"; ctx.fillRect(p.x, p.y-10, 40*(p.hp/p.maxHp), 5);
             }
 
-            s.bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x,b.y,5,0,Math.PI*2); ctx.fillStyle=b.color; ctx.fill(); createExplosion(b.x, b.y, b.color); });
+            s.bullets.forEach(b => { 
+                ctx.beginPath(); ctx.arc(b.x,b.y,5,0,Math.PI*2); 
+                ctx.fillStyle=b.color; ctx.fill(); 
+                // Trail
+                createExplosion(b.x, b.y, b.color); 
+            });
+            
             particles.forEach((p,i) => { p.x+=p.vx; p.y+=p.vy; p.life--; p.size*=0.95; ctx.fillStyle=p.color; ctx.globalAlpha=p.life/20; ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fill(); if(p.life<=0) particles.splice(i,1); }); ctx.globalAlpha=1;
             ctx.restore();
         });
 
-        // Spectator / Active Input Loop
         setInterval(() => {
             if(!myId || isPaused) return;
-            // Calculate absolute world coordinates for mouse, including camera offset
             let gx = mouse.x + cam.x;
             let gy = mouse.y + cam.y;
             let ang = Math.atan2(mouse.y-canvas.height/2, mouse.x-canvas.width/2);

@@ -7,8 +7,8 @@ const fs = require('fs');
 app.use(express.static('public'));
 
 const ROUND_TIME = 1800; // 3 Minutes
-const VOTE_TIME = 15;
-const END_TIME = 10;
+const VOTE_TIME = 150;
+const END_TIME = 100;
 const DB_FILE = 'database.json';
 
 const MAPS = [

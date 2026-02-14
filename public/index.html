@@ -2,16 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Imp Cubes: Ultimate</title>
+    <title>Imp Cubes</title>
     <link rel="icon" type="image/png" href="https://media.discordapp.net/attachments/1286433136804106282/1472114823369330689/image.png?ex=69916544&is=699013c4&hm=6e53418ccc28321ed6703073c2da8530a6e16e4680acae446d8a83c2372b6352">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700&display=swap" rel="stylesheet">
     <style>
+        /* ... Keep all existing styles ... */
         :root { --primary: #00f2ff; --secondary: #ff0055; --accent: #ffee00; --glass: rgba(15, 15, 25, 0.95); --glass-border: rgba(255, 255, 255, 0.15); }
         body { margin: 0; background: url('https://media.discordapp.net/attachments/1286433136804106282/1472114823369330689/image.png') no-repeat center center fixed; background-size: cover; overflow: hidden; font-family: 'Nunito', sans-serif; color: white; user-select: none; }
         canvas { display: block; }
-        /* ... (Keep previous animations and UI styles) ... */
-        /* ADDING ONLY NEW STYLES HERE FOR BREVITY, BUT USE FULL CSS FROM PREVIOUS STEP */
+        /* Add styles from previous answer for brevity */
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } } @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } } @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0.4); } 70% { box-shadow: 0 0 0 20px rgba(0, 242, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0); } }
         #backdrop { position: absolute; width: 100%; height: 100%; background: rgba(10, 10, 20, 0.85); backdrop-filter: blur(8px); z-index: -1; animation: fadeIn 1s; }
         #navbar { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; background: rgba(0,0,0,0.6); border-bottom: 1px solid var(--glass-border); }
@@ -24,7 +24,6 @@
         #deadshotMenu { display: none; height: calc(100vh - 100px); position: relative; }
         .center-char { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; animation: popIn 0.5s ease-out; }
         #charPreview { filter: drop-shadow(0 0 30px rgba(0, 242, 255, 0.2)); transition: transform 0.3s; width: 350px; height: 350px; }
-        #charPreview:hover { transform: scale(1.05); }
         .play-btn-large { background: linear-gradient(135deg, var(--primary), #00a8ff); border: none; padding: 20px 100px; font-size: 48px; color: #000; font-family: 'Fredoka One'; border-radius: 60px; cursor: pointer; margin-top: 30px; text-transform: uppercase; animation: pulse 2s infinite; transition: all 0.2s; box-shadow: 0 10px 30px rgba(0, 242, 255, 0.3); }
         .play-btn-large:hover { transform: scale(1.05) translateY(-3px); filter: brightness(1.2); }
         .side-panel { position: absolute; top: 20%; right: 50px; width: 350px; background: var(--glass); padding: 30px; border-radius: 16px; border: 1px solid var(--glass-border); animation: popIn 0.8s; }
@@ -69,7 +68,11 @@
     <div id="backdrop"></div>
     <div id="navbar">
         <div class="nav-logo">IMP CUBES</div>
-        <div class="nav-links"><button class="nav-btn active">PLAY</button><button class="nav-btn" onclick="openShop()">SHOP</button><button class="nav-btn" onclick="openInventory()">INVENTORY</button></div>
+        <div class="nav-links">
+            <button class="nav-btn active">PLAY</button>
+            <button class="nav-btn" onclick="openShop()">SHOP</button>
+            <button class="nav-btn" onclick="openInventory()">INVENTORY</button>
+            <button class="nav-btn" onclick="openClan()">CLAN</button> <button class="nav-btn" onclick="openLeaderboard()">LEADERBOARD</button> </div>
         <div class="account-box" id="authBox"><button class="btn-green" style="padding: 8px 30px; width: auto; font-size: 16px;" onclick="document.getElementById('loginModal').style.display='flex'">LOGIN</button></div>
         <div class="account-box" id="accBox" style="display:none;"><span id="usernameDisplay" style="font-weight:bold;">Guest</span><span class="currency">$ <span id="cpDisplay">0</span></span><button style="background:none; border:none; color:var(--secondary); cursor:pointer; font-size:14px; font-weight:bold; margin-left:10px;" onclick="logout()">LOGOUT</button></div>
     </div>
@@ -79,11 +82,41 @@
         <div class="side-panel right-panel"><div class="panel-title">UPDATES</div><div style="font-size: 14px; color: #ccc; line-height: 1.8;"><b style="color:white;">> Ultimate Update</b><br>- Clans Added (/clan)<br>- New Classes: Medic & Support<br>- Staff Items in Shop<br>- Noclip Command<br><br><b style="color:var(--primary);">> IMP CUBES</b></div></div>
     </div>
 
+    <div id="clanModal" class="modal">
+        <div class="glass-box" style="width: 400px;">
+            <h2>CLAN MENU</h2>
+            <div id="clanDisplay" style="margin-bottom:20px; font-size:24px; color:gold;">NO CLAN</div>
+            <input id="clanTagInput" placeholder="Enter Clan Tag (Max 6 chars)" style="text-transform:uppercase;">
+            <div style="display:flex; gap:10px;">
+                <button class="btn-green" onclick="clanAction('join')">JOIN/CREATE</button>
+                <button class="btn-red" onclick="clanAction('leave')">LEAVE</button>
+            </div>
+            <button class="btn" style="background:transparent; margin-top:20px;" onclick="document.getElementById('clanModal').style.display='none'">CLOSE</button>
+        </div>
+    </div>
+
+    <div id="leaderboardModal" class="modal">
+        <div class="glass-box" style="width: 500px;">
+            <h2>TOP 10 KILLERS</h2>
+            <div id="lbContent" style="text-align:left; background:rgba(0,0,0,0.3); padding:15px; border-radius:8px; max-height:400px; overflow-y:auto;">Loading...</div>
+            <button class="btn-red" onclick="document.getElementById('leaderboardModal').style.display='none'" style="margin-top:20px;">CLOSE</button>
+        </div>
+    </div>
+
     <div id="loginModal" class="modal">
         <div class="glass-box" style="width: 400px;">
             <img src="https://media.discordapp.net/attachments/1286433136804106282/1472114823369330689/image.png" class="site-logo">
             <input id="user" placeholder="Username"><input id="pass" type="password" placeholder="Password"><input id="email" placeholder="Email (Admin Only)">
-            <button class="btn btn-green" onclick="auth('login')">LOGIN</button><button class="btn" style="background:#333; color:white;" onclick="auth('signup')">CREATE ACCOUNT</button><button class="btn" style="background:transparent; color:#888; margin-top:10px; font-size:14px;" onclick="document.getElementById('loginModal').style.display='none'">Cancel</button><div id="msg" style="margin-top:10px; color:var(--secondary); font-weight:bold;"></div>
+            <button class="btn btn-green" onclick="auth('login')">LOGIN</button><button class="btn" style="background:#333; color:white;" onclick="auth('signup')">CREATE ACCOUNT</button>
+            <button class="btn" style="background:transparent; color:#888; margin-top:10px; font-size:14px;" onclick="document.getElementById('loginModal').style.display='none'">Cancel</button>
+            <div id="msg" style="margin-top:10px; color:var(--secondary); font-weight:bold;"></div>
+        </div>
+    </div>
+
+    <div id="browserModal" class="modal">
+        <div class="glass-box" id="browserBox">
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px;"><h2 style="margin:0; font-size: 32px;">SERVER BROWSER</h2><button class="btn-red" style="width:auto; padding:10px 30px;" onclick="document.getElementById('browserModal').style.display='none'">CLOSE</button></div>
+            <div id="lobbyContainer"><div id="lobbyList">Loading...</div><div id="createPanel"><h3 style="color:var(--primary); font-size: 24px;">HOST GAME</h3><input id="newLobbyName" placeholder="Server Name"><select id="modeSelect"><option value="FFA">Free For All</option><option value="TDM">Team Deathmatch</option><option value="KOTH">King of the Hill</option><option value="ZOMBIES">Zombies</option><option value="JUGGERNAUT">Juggernaut</option></select><select id="mapSelect"><option value="0">Arena</option><option value="1">Maze</option><option value="2">Towers</option><option value="3">Open Field</option></select><div class="toggle-cont"><input type="checkbox" id="privateCheck"><label>Private Room</label></div><button class="btn btn-green" onclick="createLobby()">CREATE SERVER</button><h3 style="color:var(--primary); margin-top: 40px; font-size: 24px;">PRIVATE</h3><div style="display:flex; gap:10px;"><input id="codeIn" placeholder="CODE" style="text-transform:uppercase;"><button class="btn btn-blue" style="width:80px;" onclick="joinPrivate()">GO</button></div></div></div>
         </div>
     </div>
 
@@ -101,13 +134,6 @@
                 <div class="kit-btn" onclick="selKit('lmg',this)">SUPPORT</div>
             </div>
             <button class="btn btn-green" style="font-size:24px; padding:20px;" onclick="spawn()">DEPLOY</button><button class="btn-red" style="margin-top:15px;" onclick="location.reload()">LEAVE MATCH</button>
-        </div>
-    </div>
-
-    <div id="browserModal" class="modal">
-        <div class="glass-box" id="browserBox">
-            <div style="display:flex; justify-content:space-between; margin-bottom:20px;"><h2 style="margin:0; font-size: 32px;">SERVER BROWSER</h2><button class="btn-red" style="width:auto; padding:10px 30px;" onclick="document.getElementById('browserModal').style.display='none'">CLOSE</button></div>
-            <div id="lobbyContainer"><div id="lobbyList">Loading...</div><div id="createPanel"><h3 style="color:var(--primary); font-size: 24px;">HOST GAME</h3><input id="newLobbyName" placeholder="Server Name"><select id="modeSelect"><option value="FFA">Free For All</option><option value="TDM">Team Deathmatch</option><option value="KOTH">King of the Hill</option><option value="ZOMBIES">Zombies</option><option value="JUGGERNAUT">Juggernaut</option></select><select id="mapSelect"><option value="0">Arena</option><option value="1">Maze</option><option value="2">Towers</option><option value="3">Open Field</option></select><div class="toggle-cont"><input type="checkbox" id="privateCheck"><label>Private Room</label></div><button class="btn btn-green" onclick="createLobby()">CREATE SERVER</button><h3 style="color:var(--primary); margin-top: 40px; font-size: 24px;">PRIVATE</h3><div style="display:flex; gap:10px;"><input id="codeIn" placeholder="CODE" style="text-transform:uppercase;"><button class="btn btn-blue" style="width:80px;" onclick="joinPrivate()">GO</button></div></div></div>
         </div>
     </div>
 
@@ -133,11 +159,27 @@
         function startPreviewLoop() { const pCtx = document.getElementById('charPreview').getContext('2d'); function loop() { pCtx.clearRect(0,0,350,350); drawChar(pCtx, 150, 150, '#4488FF', previewHat, Date.now()/1000, null, 1, null, 3); requestAnimationFrame(loop); } loop(); }
         window.onload = () => { document.getElementById('deadshotMenu').style.display = 'block'; startPreviewLoop(); const u = localStorage.getItem('imp_user'), p = localStorage.getItem('imp_pass'); if(u && p) auth('login', u, p); else socket.emit('requestLobbies'); };
         function auth(t, uVal, pVal) { socket.emit(t, {user: uVal||document.getElementById('user').value, pass: pVal||document.getElementById('pass').value, email: document.getElementById('email').value}); }
-        socket.on('authSuccess', d => { localStorage.setItem('imp_user', d.user); if(d.pass) localStorage.setItem('imp_pass', d.pass); document.getElementById('authBox').style.display = 'none'; document.getElementById('accBox').style.display = 'flex'; document.getElementById('usernameDisplay').innerText = d.user; document.getElementById('charName').innerText = d.user; document.getElementById('cpDisplay').innerText = d.money; document.getElementById('loginModal').style.display = 'none'; myItems = d.items || []; previewHat = d.equippedHat || 'none'; myMoney = d.money; if(d.isOwner || d.isStaff) document.getElementById('staffPanel').style.display='block'; socket.emit('requestLobbies'); });
+        socket.on('authSuccess', d => { localStorage.setItem('imp_user', d.user); if(d.pass) localStorage.setItem('imp_pass', d.pass); document.getElementById('authBox').style.display = 'none'; document.getElementById('accBox').style.display = 'flex'; document.getElementById('usernameDisplay').innerText = d.user; document.getElementById('charName').innerText = d.user; document.getElementById('cpDisplay').innerText = d.money; document.getElementById('loginModal').style.display = 'none'; myItems = d.items || []; previewHat = d.equippedHat || 'none'; myMoney = d.money; if(d.clan) document.getElementById('clanDisplay').innerText = `[${d.clan}]`; if(d.isOwner || d.isStaff) document.getElementById('staffPanel').style.display='block'; socket.emit('requestLobbies'); });
+        
+        // --- NEW MODAL LOGIC ---
+        function openClan() { document.getElementById('clanModal').style.display='flex'; }
+        function openLeaderboard() { 
+            document.getElementById('leaderboardModal').style.display='flex'; 
+            socket.emit('requestLeaderboard'); 
+        }
+        socket.on('leaderboardData', (data) => {
+            const list = document.getElementById('lbContent'); list.innerHTML = "";
+            if(!data || data.length === 0) { list.innerHTML = "No Data"; return; }
+            data.forEach((u, index) => {
+                list.innerHTML += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; border-bottom:1px solid #444; padding:5px;"><span>#${index+1} ${u.clan ? '['+u.clan+'] ' : ''}${u.name}</span><span style="color:var(--primary); font-weight:bold;">${u.kills} Kills</span></div>`;
+            });
+        });
+        function clanAction(type) { socket.emit('clanAction', {type:type, tag: document.getElementById('clanTagInput').value}); document.getElementById('clanModal').style.display='none'; }
+
+        // ... (Existing Functions) ...
         socket.on('authMsg', d => { document.getElementById('msg').innerText = d.m; });
         socket.on('shopMsg', d => { let el = document.getElementById('shopMsg'); el.innerText = d.m; el.style.color = d.s ? 'lime' : 'red'; setTimeout(()=>el.innerText="", 2000); });
         socket.on('shopUpdate', d => { myMoney=d.money; myItems=d.items; document.getElementById('cpDisplay').innerText = d.money; });
-        
         function logout() { localStorage.clear(); location.reload(); }
         function openBrowser() { socket.emit('requestLobbies'); document.getElementById('browserModal').style.display='flex'; }
         function openShop() { document.getElementById('shopMenu').style.display='flex'; }
@@ -176,14 +218,7 @@
             if(g.mode==='KOTH' && g.hill){ ctx.fillStyle="rgba(0, 242, 255, 0.15)"; ctx.fillRect(g.hill.x, g.hill.y, g.hill.w, g.hill.h); ctx.strokeStyle="var(--primary)"; ctx.lineWidth=3; ctx.setLineDash([15,10]); ctx.strokeRect(g.hill.x, g.hill.y, g.hill.w, g.hill.h); ctx.setLineDash([]); }
             ctx.fillStyle = "#222"; currentWalls.forEach(w => { ctx.fillRect(w.x, w.y, w.w, w.h); ctx.strokeStyle="#333"; ctx.lineWidth=2; ctx.strokeRect(w.x,w.y,w.w,w.h); });
             
-            // Sentries
-            if(s.sentries) s.sentries.forEach(sen => {
-                ctx.fillStyle = "#444"; ctx.fillRect(sen.x-20, sen.y-20, 40, 40); // Base
-                ctx.save(); ctx.translate(sen.x, sen.y); ctx.rotate(sen.angle);
-                ctx.fillStyle = "gray"; ctx.fillRect(0, -5, 30, 10); // Barrel
-                ctx.fillStyle = "orange"; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill(); // Head
-                ctx.restore();
-            });
+            if(s.sentries) s.sentries.forEach(sen => { ctx.fillStyle = "#444"; ctx.fillRect(sen.x-20, sen.y-20, 40, 40); ctx.save(); ctx.translate(sen.x, sen.y); ctx.rotate(sen.angle); ctx.fillStyle = "gray"; ctx.fillRect(0, -5, 30, 10); ctx.fillStyle = "orange"; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill(); ctx.restore(); });
 
             for(let id in s.players) { let p = s.players[id]; if(p.dead) continue; drawChar(ctx, p.x, p.y, p.color, p.hat, p.angle, p.username, p.hp/p.maxHp, p.kit); if(p.grapple.active) { ctx.beginPath(); ctx.moveTo(p.x+20,p.y+20); ctx.lineTo(p.grapple.x,p.grapple.y); ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke(); } }
             s.bullets.forEach(b => { ctx.fillStyle=b.color; ctx.beginPath(); ctx.arc(b.x,b.y,6,0,7); ctx.fill(); });
@@ -194,28 +229,28 @@
             document.getElementById('ammoDisplay').innerText = me.reloading ? "RELOADING" : `${me.ammo}/${me.maxAmmo}`;
         });
 
-        // VISUAL GUNS
+        // FIXED VISUALS FOR STAFF ITEMS
         function drawChar(c, x, y, color, hat, angle, name, hpPct, kitObj, scale=1) {
             c.save();
             if(scale!==1) { c.translate(x, y); c.scale(scale, scale); c.translate(-x, -y); }
-            
-            // DRAW GUN (Rotated)
-            c.save();
-            c.translate(x+20, y+20);
-            c.rotate(angle);
-            if(kitObj && kitObj.weapon) {
-                c.fillStyle = "#333";
-                c.fillRect(15, -kitObj.weapon.h/2, kitObj.weapon.w, kitObj.weapon.h); 
-            } else {
-                // Default gun
-                c.fillStyle = "#333"; c.fillRect(15, -3, 20, 6);
-            }
+            c.save(); c.translate(x+20, y+20); c.rotate(angle);
+            if(kitObj && kitObj.weapon) { c.fillStyle = "#333"; c.fillRect(15, -kitObj.weapon.h/2, kitObj.weapon.w, kitObj.weapon.h); } 
+            else { c.fillStyle = "#333"; c.fillRect(15, -3, 20, 6); }
             c.restore();
 
-            c.fillStyle = color; c.shadowBlur = 15; c.shadowColor = color; c.fillRect(x,y,40,40); c.shadowBlur = 0;
+            // VOID GLOW
+            if(hat === 'void_glow') { c.shadowBlur = 30; c.shadowColor = "black"; } 
+            else { c.shadowBlur = 15; c.shadowColor = color; }
+            
+            c.fillStyle = color; c.fillRect(x,y,40,40); c.shadowBlur = 0;
+            
+            // HATS
             if(hat==='tophat') { c.fillStyle='#111'; c.fillRect(x,y-15,40,10); c.fillRect(x+5,y-35,30,25); }
             if(hat==='crown') { c.fillStyle='gold'; c.font='20px Arial'; c.fillText('👑', x+10, y-10); }
             if(hat==='halo') { c.strokeStyle='gold'; c.lineWidth=2; c.beginPath(); c.ellipse(x+20, y-15, 15, 5, 0, 0, Math.PI*2); c.stroke(); }
+            if(hat==='police') { c.fillStyle='#223366'; c.fillRect(x,y-8,40,8); c.fillRect(x+5,y-20,30,12); c.fillStyle='gold'; c.beginPath(); c.arc(x+20, y-14, 3, 0, Math.PI*2); c.fill(); }
+            if(hat==='dev_crown') { c.fillStyle='cyan'; c.font='24px Arial'; c.fillText('👑', x+8, y-10); c.strokeStyle='white'; c.lineWidth=1; c.strokeText('👑', x+8, y-10); }
+
             let ex = Math.cos(angle)*4, ey = Math.sin(angle)*4;
             c.fillStyle="white"; c.beginPath(); c.arc(x+10, y+15, 6, 0, 7); c.fill(); c.beginPath(); c.arc(x+30, y+15, 6, 0, 7); c.fill();
             c.fillStyle="black"; c.beginPath(); c.arc(x+10+ex, y+15+ey, 3, 0, 7); c.fill(); c.beginPath(); c.arc(x+30+ex, y+15+ey, 3, 0, 7); c.fill();

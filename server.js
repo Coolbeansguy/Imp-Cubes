@@ -22,7 +22,7 @@ const KITS = {
     shotgun: { name: 'Breacher', hp: 160, speed: 0.9, weapon: { damage: 9, speed: 18, cooldown: 55, ammo: 5, reload: 150, count: 6, spread: 0.3, range: 40 } },
     sniper: { name: 'Recon', hp: 80, speed: 1.1, weapon: { damage: 95, speed: 45, cooldown: 80, ammo: 3, reload: 180, spread: 0.0, range: 200 } },
     tank: { name: 'Heavy', hp: 300, speed: 0.7, weapon: { damage: 8, speed: 20, cooldown: 5, ammo: 100, reload: 300, spread: 0.15, range: 70 } },
-    ninja: { name: 'Ninja', hp: 90, speed: 1.3, weapon: { damage: 25, speed: 30, cooldown: 15, ammo: 10, reload: 60, spread: 0.02, range: 50 } }
+    ninja: { name: 'Ninja', hp: 1.3, speed: 1.3, weapon: { damage: 25, speed: 30, cooldown: 15, ammo: 10, reload: 60, spread: 0.02, range: 50 } }
 };
 
 const GOD_KIT = { name:'ADMIN', hp:5000, speed:1.5, weapon:{damage:5000,speed:40,cooldown:5,ammo:999,reload:0,range:500}};
@@ -37,7 +37,6 @@ let gameState = {
     phase: 'WARMUP', timer: ROUND_TIME, mode: 'FFA', mapIndex: 0,
     walls: MAPS[0].walls, scores: { red: 0, blue: 0 }, 
     flags: [], hill: null, votes: { map: {}, mode: {} },
-    // ZOMBIES STATE
     wave: 1, zombiesLeft: 0, nextWaveTimer: 0
 };
 
@@ -47,7 +46,6 @@ function getSpawn(team) {
     let x, y, hit, attempts=0;
     do {
         if(gameState.mode === 'ZOMBIES' && team === 'ZOMBIE') {
-            // Zombies spawn at edges
             if(Math.random()>0.5) { x=(Math.random()>0.5?50:1950); y=Math.random()*1500; }
             else { x=Math.random()*2000; y=(Math.random()>0.5?50:1450); }
         }
@@ -55,7 +53,7 @@ function getSpawn(team) {
         else if(team === 'RED') x = Math.random()*300+100;
         else x = Math.random()*300+1600;
         
-        if(team !== 'ZOMBIE') y = Math.random()*1300+100; // Players spawn inside
+        if(team !== 'ZOMBIE') y = Math.random()*1300+100; 
         
         hit = gameState.walls.some(w => x<w.x+w.w && x+40>w.x && y<w.y+w.h && y+40>w.y);
         attempts++;
@@ -64,8 +62,16 @@ function getSpawn(team) {
 }
 
 function resetGame(mode, mapIdx) {
-    gameState.mode = mode; gameState.mapIndex = mapIdx; gameState.walls = MAPS[mapIdx].walls;
-    gameState.scores = { red: 0, blue: 0 }; gameState.timer = ROUND_TIME; gameState.phase = 'GAME'; bullets = [];
+    // Safety check: if mapIdx is somehow undefined, default to 0
+    if(!MAPS[mapIdx]) mapIdx = 0;
+
+    gameState.mode = mode; 
+    gameState.mapIndex = mapIdx; 
+    gameState.walls = MAPS[mapIdx].walls;
+    gameState.scores = { red: 0, blue: 0 }; 
+    gameState.timer = ROUND_TIME; 
+    gameState.phase = 'GAME'; 
+    bullets = [];
     
     // Mode Setup
     gameState.hill = (mode === 'KOTH') ? { x:900, y:650, w:200, h:200 } : null;
@@ -73,13 +79,13 @@ function resetGame(mode, mapIdx) {
     
     if(mode === 'ZOMBIES') {
         gameState.wave = 1;
-        gameState.zombiesLeft = 5; // Start with 5 zombies
+        gameState.zombiesLeft = 5;
         spawnZombies(5);
     }
 
     Object.keys(players).forEach((id, i) => {
         let p = players[id];
-        // Clean up old entities
+        // Clean up zombies/dummies/dead players
         if(p.type === 'zombie' || p.isDummy) { delete players[id]; return; }
         
         if (mode === 'ZOMBIES') {
@@ -93,19 +99,25 @@ function resetGame(mode, mapIdx) {
         }
         respawn(p);
     });
+
+    // IMPORTANT: Tell all clients the map has changed so they reload walls!
+    io.emit('mapChange', { 
+        walls: gameState.walls, 
+        mode: gameState.mode, 
+        mapName: MAPS[mapIdx].name 
+    });
 }
 
 function spawnZombies(count) {
     for(let i=0; i<count; i++) {
         let id = 'z_'+Math.random();
         let s = getSpawn('ZOMBIE');
-        // Zombies get stronger every wave
         let hp = 50 + (gameState.wave * 10);
         let speed = 0.5 + (gameState.wave * 0.05);
         
         players[id] = {
             id:id, username:`Zombie`, type:'zombie', team:'ZOMBIE',
-            x:s.x, y:s.y, vx:0, vy:0, w:40, h:40,
+            x:s.x, y:s.y, vx:0, vy:0, w:40, h:40, angle: 0,
             hp:hp, maxHp:hp, speed:speed, color:'#55aa55',
             grapple:{active:false}, hat:'none'
         };
@@ -114,8 +126,7 @@ function spawnZombies(count) {
 
 function respawn(p) {
     if(gameState.mode === 'ZOMBIES' && p.lives <= 0) {
-        // SPECTATOR MODE
-        p.dead = true; p.x = -1000; p.y = -1000; // Move body away
+        p.dead = true; p.x = -1000; p.y = -1000; 
         return;
     }
     p.dead = false;
@@ -153,7 +164,7 @@ io.on('connection', (socket) => {
             p.color = p.godMode ? '#FFD700' : '#4488FF'; 
             respawn(p); 
         }
-        if(data.type === 'spawnDummy') { let id='d_'+Math.random(); let s=getSpawn('FFA'); players[id]={id:id,username:"Dummy",isDummy:true,x:s.x,y:s.y,vx:0,vy:0,w:40,h:40,hp:100,maxHp:100,color:'#888',grapple:{active:false},team:'FFA',score:0,level:0,hat:'none'}; }
+        if(data.type === 'spawnDummy') { let id='d_'+Math.random(); let s=getSpawn('FFA'); players[id]={id:id,username:"Dummy",isDummy:true,x:s.x,y:s.y,vx:0,vy:0,w:40,h:40,hp:100,maxHp:100,color:'#888',grapple:{active:false},team:'FFA',score:0,level:0,hat:'none', type:'player', angle:0}; }
         if(data.type === 'clearDummies') for(let id in players) if(players[id].isDummy) delete players[id];
     });
 
@@ -167,8 +178,8 @@ io.on('connection', (socket) => {
         let p = players[socket.id]; 
         if(!p) return;
         
-        if(p.dead) { // Spectator Movement
-            p.x = d.gx; p.y = d.gy; // Client sends cam pos as gx/gy
+        if(p.dead) { 
+            p.x = d.gx; p.y = d.gy; 
             return;
         }
 
@@ -201,7 +212,7 @@ function auth(s, d, isLogin) {
     
     players[s.id] = { 
         id:s.id, username: isLogin?d.user:"Guest"+Math.floor(Math.random()*9999), 
-        team:'FFA', x:0, y:0, vx:0, vy:0, w:40, h:40, 
+        team:'FFA', x:0, y:0, vx:0, vy:0, w:40, h:40, angle: 0,
         selectedKit: baseKit, kit: startingKit, hp: startingKit.hp, maxHp: startingKit.hp, speed: startingKit.speed, 
         isOwner: isOwner, godMode: isOwner, color: isOwner?'#FFD700':'#4488FF', 
         money:acc.money, xp:acc.xp, level:getLevel(acc.xp), items:acc.items||[], hat:'none', 
@@ -210,7 +221,7 @@ function auth(s, d, isLogin) {
         type: 'player', dead: false, lives: 3
     };
     respawn(players[s.id]);
-    s.emit('startGame', { id:s.id, isOwner:isOwner });
+    s.emit('startGame', { id:s.id, isOwner:isOwner, walls: gameState.walls }); // Send initial walls
 }
 
 resetGame('FFA', 0);
@@ -220,14 +231,12 @@ setInterval(() => {
     if(gameState.mode === 'ZOMBIES' && gameState.phase === 'GAME') {
         let activeZombies = Object.values(players).filter(p => p.type === 'zombie');
         
-        // Spawn Wave
         if(activeZombies.length === 0) {
             gameState.wave++;
             io.emit('chatMsg', { user: '[SYSTEM]', text: `WAVE ${gameState.wave} STARTED!`, color: 'red' });
             spawnZombies(5 + (gameState.wave * 2));
         }
 
-        // AI Movement
         activeZombies.forEach(z => {
             let target = null, minDist = 9999;
             for(let id in players) {
@@ -239,12 +248,12 @@ setInterval(() => {
             }
             if(target) {
                 let angle = Math.atan2(target.y - z.y, target.x - z.x);
+                z.angle = angle; // SAVE THE ANGLE for the client!
                 z.vx += Math.cos(angle) * (z.speed * 0.2);
                 z.vy += Math.sin(angle) * (z.speed * 0.2);
                 
-                // Zombie Melee Damage
                 if(minDist < 40) {
-                    target.hp -= 2; // Damage per tick on contact
+                    target.hp -= 2; 
                     if(target.hp <= 0) handleDeath(target, z);
                 }
             }
@@ -304,14 +313,12 @@ setInterval(() => {
         if(!hit) {
             for(let id in players) {
                 let p = players[id];
-                if(p.dead) continue; // Don't hit spectators
+                if(p.dead) continue; 
                 
-                // Hit Logic
                 let canHit = false;
                 if(b.owner === id) canHit = false;
                 else if(gameState.mode === 'FFA') canHit = true;
                 else if(gameState.mode === 'ZOMBIES') {
-                    // Humans hurt Zombies, Zombies don't shoot
                     if(s.type === 'player' && p.type === 'zombie') canHit = true;
                 }
                 else if(p.team !== s.team) canHit = true;
@@ -338,11 +345,10 @@ function handleDeath(victim, killer) {
     if(victim.type === 'zombie' || victim.isDummy) {
         delete players[victim.id];
     } else {
-        // Player Death Logic
         if(gameState.mode === 'ZOMBIES') {
             victim.lives--;
             if(victim.lives <= 0) {
-                victim.dead = true; // Spectate
+                victim.dead = true; 
                 io.emit('chatMsg', { user: '[SYSTEM]', text: `${victim.username} is out!`, color: 'red' });
             } else {
                 respawn(victim);

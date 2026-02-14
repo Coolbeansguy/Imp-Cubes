@@ -4,184 +4,132 @@
     <meta charset="UTF-8">
     <title>Imp Cubes: Ultimate</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #4488FF; --accent: #FFD700; --bg: #0a0a10; }
+        body { margin: 0; background: var(--bg); overflow: hidden; font-family: 'Nunito', sans-serif; color: white; touch-action: none; user-select: none; }
+        canvas { display: block; }
+
+        /* GLOBAL UI */
+        .overlay { position: absolute; width: 100%; height: 100%; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.9); }
+        .glass { background: rgba(30,35,45,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); text-align: center; max-width: 800px; }
+        h1, h2, h3 { font-family: 'Fredoka One'; margin: 0 0 15px 0; color: var(--primary); }
         
-        body { 
-            margin: 0; background: var(--bg); overflow: hidden; 
-            font-family: 'Nunito', sans-serif; color: white; 
-            touch-action: none; user-select: none; 
-        }
+        .btn { width: 100%; padding: 12px; margin-top: 8px; border: none; border-radius: 8px; font-family: 'Fredoka One'; cursor: pointer; transition: 0.1s; text-transform: uppercase; }
+        .btn:active { transform: scale(0.98); }
+        .btn-blue { background: var(--primary); color: white; }
+        .btn-green { background: #00b894; color: white; }
+        .btn-red { background: #ff4757; color: white; }
+        input { width: 100%; padding: 12px; margin-bottom: 10px; background: #222; border: 2px solid #444; color: white; border-radius: 8px; box-sizing: border-box; }
+
+        /* HUD */
+        #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
         
-        canvas { display: block; position: absolute; top: 0; left: 0; }
+        /* Stats (Ammo/HP/XP) - BOTTOM CENTER */
+        #statsArea { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); text-align: center; width: 300px; }
+        .bar-container { background: rgba(0,0,0,0.6); height: 8px; border-radius: 4px; margin-top: 5px; overflow: hidden; }
+        .bar-fill { height: 100%; transition: width 0.1s; }
+        #ammoText { font-size: 24px; font-family: 'Fredoka One'; text-shadow: 2px 2px 0 #000; }
+        #xpBar { background: #a29bfe; width: 0%; }
+        #hpBar { background: #00b894; width: 100%; }
+        #dashIcon { width: 30px; height: 30px; background: #444; border-radius: 50%; display: inline-block; margin-top: 5px; border: 2px solid #fff; }
+        #dashIcon.ready { background: #00b894; box-shadow: 0 0 10px #00b894; }
 
-        /* --- ANIMATIONS --- */
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        /* Chat - BOTTOM LEFT */
+        #chatBox { position: absolute; bottom: 20px; left: 20px; width: 320px; pointer-events: auto; }
+        #chatMsgs { height: 200px; overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-end; mask-image: linear-gradient(to top, black 80%, transparent 100%); text-shadow: 1px 1px 2px black; font-weight: bold; }
+        .chat-line { margin-bottom: 4px; font-size: 14px; animation: slideUp 0.2s; }
+        #chatInput { background: rgba(0,0,0,0.6); display: none; margin: 0; }
 
-        /* --- UI CONTAINERS --- */
-        .overlay { 
-            position: absolute; width: 100%; height: 100%; z-index: 100; 
-            display: flex; align-items: center; justify-content: center; 
-            background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
-            transition: opacity 0.3s;
-        }
+        /* Top Right Info */
+        #topRight { position: absolute; top: 15px; right: 15px; text-align: right; }
+        .kill-msg { background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 4px; font-size: 13px; margin-bottom: 5px; border-right: 3px solid var(--accent); }
 
-        .panel {
-            background: rgba(30, 35, 45, 0.95);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 16px; padding: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            text-align: center; max-width: 400px; width: 90%;
-            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
+        /* P - MENU */
+        #pauseMenu { display: none; }
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .shop-item { background: #222; padding: 10px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
 
-        h1, h2, h3 { font-family: 'Fredoka One', cursive; margin: 0 0 15px 0; letter-spacing: 1px; }
-        h1 { color: var(--primary); font-size: 2.5rem; text-shadow: 0 4px 0 rgba(0,0,0,0.3); }
-
-        /* --- INPUTS & BUTTONS --- */
-        input {
-            width: 100%; padding: 12px; margin-bottom: 10px;
-            background: rgba(0,0,0,0.3); border: 2px solid #444;
-            border-radius: 8px; color: white; font-family: inherit; font-weight: bold;
-            box-sizing: border-box; transition: 0.2s;
-        }
-        input:focus { border-color: var(--primary); outline: none; background: rgba(0,0,0,0.5); }
-
-        .btn {
-            width: 100%; padding: 12px; margin-top: 8px; border: none; border-radius: 8px;
-            font-family: 'Fredoka One', cursive; font-size: 1.1rem; cursor: pointer;
-            transition: transform 0.1s, filter 0.2s; text-transform: uppercase;
-        }
-        .btn:active { transform: translateY(2px); }
-        .btn-blue { background: var(--primary); color: white; box-shadow: 0 4px 0 #2a5bb5; }
-        .btn-green { background: #00b894; color: white; box-shadow: 0 4px 0 #008f73; }
-        .btn-outline { background: transparent; border: 2px solid #555; color: #888; margin-top: 15px; }
-
-        /* --- KIT CARDS --- */
-        .kit-row { display: flex; gap: 8px; margin: 15px 0; }
-        .kit-card {
-            flex: 1; background: #2a2a35; padding: 10px; border-radius: 8px;
-            border: 2px solid transparent; cursor: pointer; transition: 0.2s;
-        }
-        .kit-card:hover { transform: translateY(-3px); background: #353545; }
-        .kit-card.selected { border-color: var(--accent); background: rgba(255, 215, 0, 0.1); }
-        .kit-name { font-weight: bold; font-size: 0.9rem; display: block; }
-        .kit-stat { font-size: 0.7rem; color: #aaa; }
-
-        /* --- HUD --- */
-        #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; display: none; }
-        
-        #topBar { 
-            position: absolute; top: 15px; width: 100%; text-align: center; 
-            font-family: 'Fredoka One', cursive; font-size: 1.5rem; 
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-        }
-
-        #killFeed {
-            position: absolute; top: 15px; right: 15px; 
-            display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
-        }
-        .kill-msg { 
-            background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 4px; 
-            font-size: 0.85rem; animation: slideUp 0.3s ease-out; 
-            border-left: 3px solid var(--accent);
-        }
-
-        #bottomLeft { position: absolute; bottom: 20px; left: 20px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
-        
-        #chatBox { 
-            width: 300px; pointer-events: auto; 
-            mask-image: linear-gradient(to top, black 80%, transparent 100%);
-        }
-        #chatMsgs { 
-            height: 150px; overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-end; 
-            text-shadow: 1px 1px 2px black; font-weight: bold; margin-bottom: 5px;
-        }
-        .chat-line { margin-bottom: 3px; font-size: 0.9rem; animation: slideUp 0.2s; }
-        #chatInput { background: rgba(0,0,0,0.5); display: none; margin: 0; }
-
-        #controlsInfo { 
-            position: absolute; top: 15px; left: 15px; 
-            background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px;
-            font-size: 0.8rem; color: #ccc; 
-        }
-        .key { background: white; color: black; padding: 1px 4px; border-radius: 3px; font-weight: bold; }
-
-        /* Leaderboard styling */
-        .lb-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .rank-1 { color: #FFD700; } 
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
     <div id="mainMenu" class="overlay">
-        <div class="panel">
+        <div class="glass" style="width: 400px;">
             <h1>IMP CUBES</h1>
-            
-            <input id="user" placeholder="Username" maxlength="12">
-            <input id="email" placeholder="Email (For Owner Access)">
+            <input id="user" placeholder="Username">
+            <input id="email" placeholder="Email (Owner Only)">
             <input id="pass" type="password" placeholder="Password">
             
-            <div style="text-align:left; color:#888; font-size:0.8rem; margin-top:10px;">SELECT CLASS</div>
-            <div class="kit-row">
-                <div class="kit-card selected" onclick="selKit('shotgun', this)">
-                    <span class="kit-name">BREACHER</span>
-                    <span class="kit-stat">High HP, Close Range</span>
-                </div>
-                <div class="kit-card" onclick="selKit('assault', this)">
-                    <span class="kit-name">SOLDIER</span>
-                    <span class="kit-stat">Balanced, Rapid Fire</span>
-                </div>
-                <div class="kit-card" onclick="selKit('sniper', this)">
-                    <span class="kit-name">RECON</span>
-                    <span class="kit-stat">Low HP, One Shot</span>
-                </div>
-                <div class="kit-card" onclick="selKit('tank', this)">
-                    <span class="kit-name">TANK</span>
-                    <span class="kit-stat">Huge HP, Slow</span>
-                </div>
+            <h3 style="margin-top:20px; font-size:14px; color:#888;">SELECT CLASS</h3>
+            <div style="display:flex; gap:5px; margin-bottom:15px;">
+                <button class="btn" style="background:#444" onclick="selKit('assault')">Soldier</button>
+                <button class="btn" style="background:#444" onclick="selKit('shotgun')">Breacher</button>
+                <button class="btn" style="background:#444" onclick="selKit('sniper')">Recon</button>
+                <button class="btn" style="background:#444" onclick="selKit('ninja')">Ninja</button>
+                <button class="btn" style="background:#444" onclick="selKit('tank')">Heavy</button>
             </div>
 
-            <button class="btn btn-blue" onclick="auth('login')">Login & Play</button>
-            <button class="btn btn-green" onclick="auth('signup')">Create Account</button>
-            <button class="btn btn-outline" onclick="guest()">Play as Guest</button>
-            <div id="msg" style="margin-top:10px; font-size:0.9rem;"></div>
+            <button class="btn btn-blue" onclick="auth('login')">LOGIN</button>
+            <button class="btn btn-green" onclick="auth('signup')">SIGN UP</button>
+            <button class="btn btn-red" onclick="document.getElementById('shopMenu').style.display='flex'">SHOP</button>
+            <div id="msg" style="margin-top:10px; font-size:12px;"></div>
         </div>
     </div>
 
-    <div id="endMenu" class="overlay" style="display:none;">
-        <div class="panel">
-            <h1 id="endTitle" style="color:var(--accent)">ROUND OVER</h1>
-            <div id="lbContainer" style="margin-bottom:20px; text-align:left;"></div>
+    <div id="shopMenu" class="overlay" style="display:none; z-index: 101;">
+        <div class="glass">
+            <h2>ITEM SHOP</h2>
+            <p>Spend Cube Points (CP)</p>
+            <div class="shop-item">
+                <span>Top Hat</span> <button class="btn btn-green" style="width:auto; padding:5px 15px;" onclick="buy('tophat')">500 CP</button>
+            </div>
+            <div class="shop-item">
+                <span>Gold Crown</span> <button class="btn btn-green" style="width:auto; padding:5px 15px;" onclick="buy('crown')">2000 CP</button>
+            </div>
+            <button class="btn btn-red" onclick="document.getElementById('shopMenu').style.display='none'">CLOSE</button>
+        </div>
+    </div>
+
+    <div id="pauseMenu" class="overlay">
+        <div class="glass" style="width: 350px;">
+            <h2>PAUSED</h2>
+            <div class="menu-grid">
+                <button class="btn btn-blue" onclick="togglePause()">RESUME</button>
+                <button class="btn btn-red" onclick="location.reload()">LEAVE GAME</button>
+            </div>
             
-            <div id="voteSection" style="display:none;">
-                <h3>VOTE NEXT MODE</h3>
-                <div class="kit-row">
-                    <button class="btn btn-blue" onclick="vote('mode','FFA')">FFA</button>
-                    <button class="btn btn-blue" onclick="vote('mode','KOTH')">KOTH</button>
-                    <button class="btn btn-blue" onclick="vote('mode','CTF')">CTF</button>
-                </div>
+            <div id="staffPanel" style="display:none; border-top:1px solid #555; margin-top:20px; padding-top:10px;">
+                <h3 style="color:var(--accent)">STAFF PANEL</h3>
+                <button class="btn btn-green" onclick="socket.emit('staffAction',{type:'giveCP'})">+1000 CP</button>
+                <button class="btn btn-red" onclick="socket.emit('staffAction',{type:'kickAll'})">KICK ALL</button>
             </div>
         </div>
     </div>
 
     <div id="hud">
-        <div id="topBar">WARMUP</div>
-        <div id="killFeed"></div>
-        <div id="controlsInfo">
-            <div><span class="key">WASD</span> Move</div>
-            <div><span class="key">SHIFT</span> Dash</div>
-            <div><span class="key">L-CLICK</span> Shoot</div>
-            <div><span class="key">R-CLICK</span> Grapple</div>
-            <div><span class="key">ENTER</span> Chat</div>
+        <div id="topRight">
+            <div style="font-family:'Fredoka One'; font-size:20px;">Lvl <span id="lvlDisplay">1</span></div>
+            <div id="killFeed"></div>
         </div>
-        <div id="bottomLeft">
-            <div id="chatBox">
-                <div id="chatMsgs"></div>
-                <input id="chatInput" placeholder="Type message...">
+
+        <div id="statsArea">
+            <div id="ammoText">30 / 30</div>
+            <div class="bar-container" style="height:6px; background:#444;"><div id="reloadBar" class="bar-fill" style="width:0%; background:white;"></div></div>
+            
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:5px;">
+                <div style="width:80%">
+                    <div class="bar-container" style="height:10px;"><div id="hpBar" class="bar-fill"></div></div>
+                    <div class="bar-container" style="height:4px; margin-top:2px;"><div id="xpBar" class="bar-fill"></div></div>
+                </div>
+                <div id="dashIcon"></div>
             </div>
+        </div>
+
+        <div id="chatBox">
+            <div id="chatMsgs"></div>
+            <input id="chatInput" placeholder="Press ENTER to chat...">
         </div>
     </div>
 
@@ -192,80 +140,51 @@
         const socket = io();
         const canvas = document.getElementById('game');
         const ctx = canvas.getContext('2d');
-        
-        // --- GAME JUICE VARIABLES ---
-        let particles = [];
-        let damageNumbers = [];
-        let shake = 0;
-        let cam = { x: 0, y: 0 }; // Camera position
-        
-        // Resize canvas
-        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
         window.onresize = resize; resize();
 
-        let myId = null;
-        let kit = 'shotgun';
-        let rgbTick = 0;
+        let myId = null, kit = 'assault', rgbTick = 0;
+        let cam = { x: 0, y: 0 };
+        let isPaused = false;
 
-        // --- AUTH ---
-        function selKit(k, el) { 
-            kit = k; 
-            document.querySelectorAll('.kit-card').forEach(c => c.classList.remove('selected')); 
-            el.classList.add('selected'); 
-        }
+        function selKit(k) { kit = k; }
         function val(id) { return document.getElementById(id).value; }
-        function auth(type) { 
-            socket.emit(type, { user: val('user'), pass: val('pass'), email: val('email'), kit: kit }); 
-        }
-        function guest() { socket.emit('guest', { kit: kit }); }
-        function vote(t, v) { socket.emit('vote', { type: t, val: v }); document.getElementById('voteSection').style.display = 'none'; }
+        function auth(type) { socket.emit(type, { user: val('user'), pass: val('pass'), email: val('email'), kit: kit }); }
+        function buy(item) { socket.emit('buy', item); }
 
-        socket.on('authMsg', d => {
-            const el = document.getElementById('msg');
-            el.innerText = d.msg; el.style.color = d.success ? '#00b894' : '#ff7675';
-        });
-
+        socket.on('authMsg', d => { document.getElementById('msg').innerText = d.msg; document.getElementById('msg').style.color = d.success?'#0f0':'#f00'; });
+        
         socket.on('startGame', d => {
             myId = d.id;
             document.getElementById('mainMenu').style.display = 'none';
             document.getElementById('hud').style.display = 'block';
+            if(d.isOwner) document.getElementById('staffPanel').style.display = 'block';
         });
 
-        // --- EVENTS ---
+        // CHAT
         socket.on('chatMsg', d => {
             const l = document.createElement('div'); l.className = 'chat-line';
             l.innerHTML = `<span style="color:${d.color}">${d.user}:</span> ${d.text}`;
-            const c = document.getElementById('chatMsgs');
-            c.appendChild(l); c.scrollTop = c.scrollHeight;
+            document.getElementById('chatMsgs').appendChild(l);
         });
 
-        socket.on('gameover', d => {
-            document.getElementById('endMenu').style.display = 'flex';
-            document.getElementById('voteSection').style.display = 'none'; // Wait for vote phase
-            
-            // Build simple leaderboard
-            let html = "";
-            d.top.forEach((p, i) => {
-                let cls = i === 0 ? 'rank-1' : '';
-                html += `<div class="lb-row ${cls}"><span>#${i+1} ${p.username}</span><span>${p.score}</span></div>`;
-            });
-            document.getElementById('lbContainer').innerHTML = html;
-        });
-
-        // --- INPUTS ---
+        // INPUT
         const keys = { w:0, a:0, s:0, d:0, shift:0 };
         const mouse = { x:0, y:0, down:0, right:0 };
-        const chatInput = document.getElementById('chatInput');
+        const chatIn = document.getElementById('chatInput');
+
+        function togglePause() {
+            isPaused = !isPaused;
+            document.getElementById('pauseMenu').style.display = isPaused ? 'flex' : 'none';
+        }
 
         window.onkeydown = e => {
-            if(document.activeElement === chatInput) {
-                if(e.code === 'Enter') { 
-                    socket.emit('chat', chatInput.value); 
-                    chatInput.value = ''; chatInput.style.display = 'none'; chatInput.blur(); 
-                }
+            if(document.activeElement === chatIn) {
+                if(e.code === 'Enter') { socket.emit('chat', chatIn.value); chatIn.value=''; chatIn.style.display='none'; chatIn.blur(); }
                 return;
             }
-            if(e.code === 'Enter') { chatInput.style.display = 'block'; chatInput.focus(); return; }
+            if(e.code === 'Enter') { chatIn.style.display='block'; chatIn.focus(); return; }
+            if(e.code === 'KeyP') togglePause();
             
             if(e.code=='KeyW') keys.w=1; if(e.code=='KeyS') keys.s=1;
             if(e.code=='KeyA') keys.a=1; if(e.code=='KeyD') keys.d=1;
@@ -276,178 +195,90 @@
             if(e.code=='KeyA') keys.a=0; if(e.code=='KeyD') keys.d=0;
             if(e.code=='ShiftLeft') keys.shift=0;
         };
-        window.onmousemove = e => { mouse.x = e.clientX; mouse.y = e.clientY; };
+        window.onmousemove = e => { mouse.x=e.clientX; mouse.y=e.clientY; };
         window.onmousedown = e => { if(e.button===0) mouse.down=1; if(e.button===2) mouse.right=1; };
         window.onmouseup = e => { if(e.button===0) mouse.down=0; if(e.button===2) mouse.right=0; };
         window.oncontextmenu = e => e.preventDefault();
 
-        // --- PARTICLE SYSTEM ---
-        function createExplosion(x, y, color) {
-            for(let i=0; i<8; i++) {
-                particles.push({
-                    x: x, y: y,
-                    vx: (Math.random()-0.5) * 10,
-                    vy: (Math.random()-0.5) * 10,
-                    life: 20 + Math.random() * 10,
-                    color: color,
-                    size: 2 + Math.random() * 3
-                });
-            }
-        }
-        
-        function addDamageText(x, y, dmg) {
-            damageNumbers.push({ x: x, y: y, text: dmg, life: 40, vy: -2 });
-        }
-
-        // --- RENDER LOOP ---
-        let lastHealth = 100;
-
+        // RENDER LOOP
         socket.on('state', s => {
             if(!myId) return;
             const me = s.players[myId]; if(!me) return;
-            const g = s.game;
 
-            // --- LOGIC UPDATES ---
-            if(g.phase === 'VOTE') document.getElementById('voteSection').style.display = 'block';
-            else if (g.phase === 'GAME') document.getElementById('endMenu').style.display = 'none';
+            // --- HUD UPDATES ---
+            document.getElementById('ammoText').innerText = me.reloading ? "RELOADING..." : `${me.ammo} / ${me.maxAmmo}`;
+            document.getElementById('reloadBar').style.width = me.reloading ? `${(me.reloadTimer/me.kit.weapon.reload)*100}%` : '0%';
+            document.getElementById('hpBar').style.width = `${(me.hp/me.maxHp)*100}%`;
+            document.getElementById('lvlDisplay').innerText = me.level;
+            // XP Bar approx (math based on level formula)
+            let currentLevelXp = (me.level-1)*(me.level-1)*100;
+            let nextLevelXp = me.level*me.level*100;
+            let progress = (me.xp - currentLevelXp) / (nextLevelXp - currentLevelXp);
+            document.getElementById('xpBar').style.width = `${progress*100}%`;
             
-            // HUD Text
-            let timeStr = `${Math.floor(g.timer/60)}:${(g.timer%60).toString().padStart(2,'0')}`;
-            if(g.mode === 'FFA') document.getElementById('topBar').innerHTML = `${timeStr} | FFA`;
-            else document.getElementById('topBar').innerHTML = `${timeStr} | <span style="color:#ff4757">${g.scores.red}</span> - <span style="color:#4488FF">${g.scores.blue}</span>`;
-
-            // Detect Damage for Shake
-            if(me.hp < lastHealth) shake = 10;
-            lastHealth = me.hp;
-            if(mouse.down && me.shootTimer <= 0) shake = 3; // Shake on shoot
+            document.getElementById('dashIcon').className = me.dashTimer <= 0 ? 'ready' : '';
 
             // --- DRAWING ---
             rgbTick += 2; const rainbow = `hsl(${rgbTick}, 100%, 50%)`;
             
-            // Camera Lerp (Smooth movement)
-            let targetX = me.x - canvas.width/2 + 20;
-            let targetY = me.y - canvas.height/2 + 20;
-            cam.x += (targetX - cam.x) * 0.1;
-            cam.y += (targetY - cam.y) * 0.1;
+            // Camera Smoothing
+            let tx = me.x - canvas.width/2 + 20;
+            let ty = me.y - canvas.height/2 + 20;
+            cam.x += (tx - cam.x)*0.1; cam.y += (ty - cam.y)*0.1;
 
-            // Apply Shake
-            let shakeX = (Math.random()-0.5) * shake;
-            let shakeY = (Math.random()-0.5) * shake;
-            if(shake > 0) shake *= 0.9;
-
-            // Clear Background
-            ctx.fillStyle = "#111216"; 
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#111216"; ctx.fillRect(0,0,canvas.width,canvas.height);
             
-            // Grid Lines (Juice)
-            ctx.strokeStyle = "rgba(255,255,255,0.03)";
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            for(let x = -cam.x % 100; x < canvas.width; x+=100) { ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); }
-            for(let y = -cam.y % 100; y < canvas.height; y+=100) { ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); }
+            ctx.save(); ctx.translate(-cam.x, -cam.y);
+            
+            // Grid
+            ctx.strokeStyle = "rgba(255,255,255,0.03)"; ctx.beginPath();
+            for(let i=0; i<2000; i+=100) { ctx.moveTo(i,0); ctx.lineTo(i,1500); ctx.moveTo(0,i); ctx.lineTo(2000,i); }
             ctx.stroke();
 
-            ctx.save();
-            ctx.translate(-cam.x + shakeX, -cam.y + shakeY);
-
-            // Draw Walls
-            ctx.shadowBlur = 0;
+            // Walls
             ctx.fillStyle = "#2d3436";
-            s.game.walls.forEach(w => {
-                ctx.fillRect(w.x, w.y, w.w, w.h);
-                ctx.strokeStyle = "#636e72"; ctx.lineWidth=2; ctx.strokeRect(w.x, w.y, w.w, w.h);
-            });
+            s.bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x,b.y,b.life>5?3:6,0,Math.PI*2); ctx.fillStyle=b.color; ctx.fill(); });
 
-            // Draw Objectives
-            if(g.mode === 'KOTH' && g.hill) {
-                ctx.fillStyle = "rgba(255, 215, 0, 0.1)";
-                ctx.fillRect(g.hill.x, g.hill.y, g.hill.w, g.hill.h);
-                ctx.strokeStyle = "gold"; ctx.strokeRect(g.hill.x, g.hill.y, g.hill.w, g.hill.h);
-            }
-            if(g.mode === 'CTF') {
-                g.flags.forEach(f => {
-                    ctx.fillStyle = f.team==='RED'?'#ff4757':'#4488FF';
-                    ctx.beginPath(); ctx.arc(f.x, f.y, 15, 0, Math.PI*2); ctx.fill();
-                });
-            }
-
-            // Draw Players
             for(let id in s.players) {
                 let p = s.players[id];
-                let isOwner = p.maxHp >= 500;
-                
+                let isOwner = p.color === '#FFD700';
+
                 // Grapple
-                if(p.grapple.active) {
-                    ctx.beginPath(); ctx.moveTo(p.x+20, p.y+20); ctx.lineTo(p.grapple.x, p.grapple.y);
-                    ctx.strokeStyle = "white"; ctx.globalAlpha=0.5; ctx.stroke(); ctx.globalAlpha=1;
-                }
-
-                // Shadow
-                ctx.fillStyle = "rgba(0,0,0,0.4)";
-                ctx.fillRect(p.x+5, p.y+40, 30, 5);
-
+                if(p.grapple.active) { ctx.beginPath(); ctx.moveTo(p.x+20,p.y+20); ctx.lineTo(p.grapple.x,p.grapple.y); ctx.strokeStyle='white'; ctx.stroke(); }
+                
                 // Body
                 ctx.fillStyle = isOwner ? rainbow : p.color;
-                ctx.shadowBlur = 15; ctx.shadowColor = p.color; // Glow effect
                 ctx.fillRect(p.x, p.y, p.w, p.h);
-                ctx.shadowBlur = 0;
-
-                // Eyes
-                const ang = p.angle;
-                ctx.fillStyle = "white"; 
-                ctx.beginPath(); ctx.arc(p.x+10, p.y+15, 6, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(p.x+30, p.y+15, 6, 0, Math.PI*2); ctx.fill();
-                const ex = Math.cos(ang)*3, ey = Math.sin(ang)*3;
-                ctx.fillStyle = "black";
-                ctx.beginPath(); ctx.arc(p.x+10+ex, p.y+15+ey, 3, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(p.x+30+ex, p.y+15+ey, 3, 0, Math.PI*2); ctx.fill();
-
-                // Stats
-                ctx.fillStyle = "white"; ctx.font = "bold 12px Nunito"; ctx.textAlign = "center";
-                ctx.fillText(p.username, p.x+20, p.y-15);
                 
-                // HP Bar
-                ctx.fillStyle = "#ff7675"; ctx.fillRect(p.x, p.y-10, 40, 5);
-                ctx.fillStyle = "#00b894"; ctx.fillRect(p.x, p.y-10, 40*(p.hp/p.maxHp), 5);
+                // Eyes
+                let ang = p.angle;
+                ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(p.x+10,p.y+15,6,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(p.x+30,p.y+15,6,0,7); ctx.fill();
+                let ex=Math.cos(ang)*3, ey=Math.sin(ang)*3;
+                ctx.fillStyle="black"; ctx.beginPath(); ctx.arc(p.x+10+ex,p.y+15+ey,3,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(p.x+30+ex,p.y+15+ey,3,0,7); ctx.fill();
+                
+                // Hat
+                if(p.hat === 'tophat') { ctx.fillStyle='#111'; ctx.fillRect(p.x,p.y-15,40,10); ctx.fillRect(p.x+5,p.y-40,30,25); }
+                if(p.hat === 'crown') { ctx.fillStyle='gold'; ctx.fillText("👑", p.x+10, p.y-10); }
+
+                // Name
+                ctx.fillStyle="white"; ctx.font="bold 12px Nunito"; ctx.fillText(`Lvl ${p.level} ${p.username}`, p.x, p.y-20);
+                
+                // HP
+                ctx.fillStyle="red"; ctx.fillRect(p.x, p.y-10, 40, 5); ctx.fillStyle="#00b894"; ctx.fillRect(p.x, p.y-10, 40*(p.hp/p.maxHp), 5);
             }
-
-            // Draw Bullets & Particles
-            s.bullets.forEach(b => {
-                ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI*2);
-                ctx.fillStyle = b.owner===myId ? "#fff" : b.color;
-                ctx.fill();
-                // Trail
-                createExplosion(b.x, b.y, b.color); // Tiny trail particles
-            });
-
-            // Update & Draw Particles
-            particles.forEach((p, i) => {
-                p.x += p.vx; p.y += p.vy; p.life--; p.size *= 0.95;
-                ctx.fillStyle = p.color; ctx.globalAlpha = p.life / 20;
-                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
-                if(p.life <= 0) particles.splice(i, 1);
-            });
-            ctx.globalAlpha = 1;
-
             ctx.restore();
         });
 
         // INPUT LOOP
         setInterval(() => {
-            if(!myId) return;
-            // Send raw mouse coords, but remember they are relative to screen, not world
-            // Server expects world coords. We fix this by adding camera pos.
-            let worldMx = mouse.x + cam.x;
-            let worldMy = mouse.y + cam.y;
+            if(!myId || isPaused) return;
             let ang = Math.atan2(mouse.y - canvas.height/2, mouse.x - canvas.width/2);
-            
             socket.emit('input', {
                 up: keys.w, down: keys.s, left: keys.a, right: keys.d, dash: keys.shift,
                 shoot: mouse.down, grapple: mouse.right, angle: ang,
-                gx: worldMx, gy: worldMy
+                gx: mouse.x + cam.x, gy: mouse.y + cam.y
             });
         }, 1000/60);
-
     </script>
 </body>
 </html>

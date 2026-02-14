@@ -160,10 +160,27 @@ setInterval(() => {
     }
 
     // Update Bullets
-    for (let i = bullets.length - 1; i >= 0; i--) {
-        const b = bullets[i];
-        b.x += b.vx; b.y += b.vy; b.life--;
-        let hit = false;
+// ... inside the bullet collision loop ...
+
+if (p.hp <= 0) {
+    // 1. Respawn the dead player
+    const spawn = getSafeSpawn();
+    p.x = spawn.x;
+    p.y = spawn.y;
+    p.hp = p.maxHp;
+
+    // 2. Give "Cube Points" to the killer
+    if (players[b.owner]) {
+        players[b.owner].score++;      // Add Kill
+        players[b.owner].money += 50;  // Add 50 Cube Points
+        
+        // Save immediately so they don't lose it
+        if(userDB[players[b.owner].username]) {
+            userDB[players[b.owner].username].money = players[b.owner].money;
+            saveDB();
+        }
+    }
+}
 
         // Hit Walls
         WALLS.forEach(w => {

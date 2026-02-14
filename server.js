@@ -87,11 +87,17 @@ io.on('connection', (socket) => {
         socket.emit('startGame', { mapSize: MAP_SIZE, id: socket.id });
     }
 
-    // NEW: RENAME EVENT
     socket.on('rename', (newName) => {
         const p = players[socket.id];
-        if(p && newName.length > 0 && newName.length < 15) {
-            p.username = newName;
+        if(p && newName.length > 0 && newName.length < 15) p.username = newName;
+    });
+
+    // NEW: CHAT HANDLER
+    socket.on('chat', (msg) => {
+        const p = players[socket.id];
+        if(p && msg.trim().length > 0) {
+            // Broadcast to everyone with user info
+            io.emit('chatMsg', { user: p.username, text: msg.substring(0, 60), color: p.color });
         }
     });
 
@@ -108,7 +114,6 @@ io.on('connection', (socket) => {
 
         p.angle = data.angle;
 
-        // DASH
         if (data.dash && p.dashCooldown <= 0) {
             const speed = 25; 
             if (data.up) p.vy -= speed;

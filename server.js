@@ -21,20 +21,21 @@ const KITS = {
 };
 const GOD_KIT = { name:'ADMIN', hp:5000, speed:1.5, weapon:{damage:5000,speed:40,cooldown:5,ammo:999,reload:0,range:500}};
 
-// --- DATABASE ---
 let userDB = {};
 if(fs.existsSync(DB_FILE)) try { userDB=JSON.parse(fs.readFileSync(DB_FILE)); } catch(e){}
 function saveDB(){ fs.writeFileSync(DB_FILE,JSON.stringify(userDB)); }
 function getLevel(xp) { return Math.floor(Math.sqrt(xp/100))+1; }
 
 // --- LOBBY SYSTEM ---
-const lobbies = {}; // Stores all active game lobbies
-const socketLobbyMap = {}; // Maps socket ID to lobby ID
+const lobbies = {}; 
+const socketLobbyMap = {}; 
 
 class Lobby {
-    constructor(id, hostId) {
+    constructor(id, hostId, settings) {
         this.id = id;
         this.hostId = hostId;
+        this.name = settings.name || `Lobby ${id}`;
+        this.isPublic = settings.isPublic;
         this.players = {};
         this.bullets = [];
         this.gameState = {
@@ -55,7 +56,6 @@ class Lobby {
         this.gameState.phase = 'GAME';
         this.bullets = [];
 
-        // Mode Setup
         this.gameState.hill = (mode === 'KOTH') ? { x:900, y:650, w:200, h:200 } : null;
         this.gameState.flags = (mode === 'CTF') ? [{ team:'RED', x:100, y:750, base:{x:100,y:750}, carrier:null }, { team:'BLUE', x:1900, y:750, base:{x:1900,y:750}, carrier:null }] : [];
 
@@ -64,7 +64,6 @@ class Lobby {
             this.spawnZombies(5);
         }
 
-        // Reset Players
         Object.values(this.players).forEach((p, i) => {
             if(p.type === 'zombie' || p.isDummy) { delete this.players[p.id]; return; }
             this.assignTeam(p, i);
@@ -129,7 +128,6 @@ class Lobby {
     }
 }
 
-// --- SOCKET CONNECTION ---
 io.on('connection', (socket) => {
     let currentUser = null;
 
@@ -159,14 +157,34 @@ io.on('connection', (socket) => {
             isOwner: isOwner, godMode: isOwner
         };
         s.emit('authSuccess', { isOwner });
+        sendLobbyList(s); // Send list immediately on login
     }
 
-    // --- LOBBY ACTIONS ---
-    socket.on('createLobby', () => {
+    // --- NEW: LOBBY LIST & CREATION ---
+    socket.on('requestLobbies', () => sendLobbyList(socket));
+
+    function sendLobbyList(s) {
+        let list = Object.values(lobbies)
+            .filter(l => l.isPublic)
+            .map(l => ({
+                id: l.id,
+                name: l.name,
+                mode: l.gameState.mode,
+                map: MAPS[l.gameState.mapIndex].name,
+                count: Object.keys(l.players).length
+            }));
+        s.emit('lobbyList', list);
+    }
+
+    socket.on('createLobby', (settings) => {
         if(!currentUser) return;
         let lobbyId = Math.random().toString(36).substring(2, 6).toUpperCase();
-        lobbies[lobbyId] = new Lobby(lobbyId, socket.id);
+        // settings = { name: "My Game", isPublic: true/false }
+        lobbies[lobbyId] = new Lobby(lobbyId, socket.id, settings);
         joinLobby(socket, lobbyId);
+        
+        // Broadcast new list to everyone in menu
+        io.emit('lobbyUpdate'); // Tells clients to request new list
     });
 
     socket.on('joinLobby', (lobbyId) => {
@@ -196,16 +214,17 @@ io.on('connection', (socket) => {
 
         s.emit('startGame', { id: s.id, isOwner: currentUser.isOwner, walls: lobby.gameState.walls, lobbyId: lobbyId });
         io.to(lobbyId).emit('chatMsg', { user:'[SYSTEM]', text:`${p.username} joined!`, color:'lime' });
+        
+        // Update list because player count changed
+        io.emit('lobbyUpdate');
     }
 
-    // --- GAME INPUT ---
+    // --- GAME INPUT & STAFF ---
     socket.on('input', (d) => {
         let lid = socketLobbyMap[socket.id];
         if(!lid || !lobbies[lid]) return;
         let p = lobbies[lid].players[socket.id];
-        if(!p) return;
-
-        if(p.dead) { p.x = d.gx; p.y = d.gy; return; }
+        if(!p || p.dead) { if(p&&p.dead){p.x=d.gx; p.y=d.gy;} return; }
 
         p.angle = d.angle;
         let spd = p.speed * (d.dash && p.dashTimer<=0 ? 25 : 0.8);
@@ -226,54 +245,37 @@ io.on('connection', (socket) => {
         if(d.grapple && !p.grapple.active) { p.grapple.active=true; p.grapple.x=d.gx; p.grapple.y=d.gy; } else if(!d.grapple) p.grapple.active=false;
     });
 
-    // --- CHAT COMMANDS ---
+    socket.on('staffAction', (data) => {
+        let lid = socketLobbyMap[socket.id];
+        if(!lid || !lobbies[lid]) return;
+        let lobby = lobbies[lid];
+        let p = lobby.players[socket.id];
+        if(!p || (!p.isOwner && lobby.hostId !== socket.id)) return;
+
+        if(data.type === 'skipRound') { lobby.gameState.timer = 1; io.to(lid).emit('chatMsg', { user: '[SYSTEM]', text: 'Round Skipped', color: 'gold' }); }
+        if(data.type === 'giveCP' && p.isOwner) { p.money += 1000; if(userDB[p.username]) { userDB[p.username].money = p.money; saveDB(); } socket.emit('chatMsg', { user: '[SYSTEM]', text: '+1000 CP', color: 'green' }); }
+        if(data.type === 'toggleGod' && p.isOwner) { p.godMode = !p.godMode; p.color = p.godMode ? '#FFD700' : '#4488FF'; lobby.respawn(p); }
+        if(data.type === 'spawnDummy') { let id='d_'+Math.random(); let s=lobby.getSpawn('FFA'); lobby.players[id]={id:id,username:"Dummy",isDummy:true,x:s.x,y:s.y,vx:0,vy:0,w:40,h:40,hp:100,maxHp:100,color:'#888',grapple:{active:false},team:'FFA',score:0,level:0,hat:'none', type:'player', angle:0}; }
+        if(data.type === 'clearDummies') { for(let id in lobby.players) if(lobby.players[id].isDummy) delete lobby.players[id]; }
+    });
+
     socket.on('chat', (m) => {
         let lid = socketLobbyMap[socket.id];
         if(!lid || !lobbies[lid]) return;
         let p = lobbies[lid].players[socket.id];
         if(!p) return;
 
-        // COMMANDS
         if(m.startsWith('/')) {
             let args = m.split(' ');
             let cmd = args[0].toLowerCase();
             let isHost = (lobbies[lid].hostId === socket.id) || p.isOwner;
-
-            if(cmd === '/help') {
-                socket.emit('chatMsg', {user:'[HELP]', text:'Commands: /kick <name>, /map <arena/maze>, /mode <ffa/koth/ctf>, /size <10-100>', color:'gold'});
-            }
-            else if(cmd === '/kick' && isHost) {
-                let targetName = args[1];
-                let targetId = Object.keys(lobbies[lid].players).find(k => lobbies[lid].players[k].username === targetName);
-                if(targetId) {
-                    io.to(targetId).emit('disconnect'); // Force disconnect logic handled by client refresh
-                    delete lobbies[lid].players[targetId];
-                    io.to(lid).emit('chatMsg', {user:'[SYSTEM]', text:`${targetName} was kicked.`, color:'red'});
-                }
-            }
-            else if(cmd === '/map' && isHost) {
-                let mapName = args[1]?.toLowerCase();
-                let idx = (mapName === 'maze') ? 1 : 0;
-                lobbies[lid].resetGame(lobbies[lid].gameState.mode, idx);
-                io.to(lid).emit('chatMsg', {user:'[SYSTEM]', text:`Map changed to ${MAPS[idx].name}`, color:'cyan'});
-            }
-            else if(cmd === '/mode' && isHost) {
-                let mode = args[1]?.toUpperCase();
-                if(['FFA','KOTH','CTF','ZOMBIES'].includes(mode)) {
-                    lobbies[lid].resetGame(mode, lobbies[lid].gameState.mapIndex);
-                    io.to(lid).emit('chatMsg', {user:'[SYSTEM]', text:`Mode changed to ${mode}`, color:'cyan'});
-                }
-            }
-            else if(cmd === '/size') {
-                let size = parseInt(args[1]);
-                if(size >= 10 && size <= 100) {
-                    p.w = size; p.h = size;
-                    io.to(lid).emit('chatMsg', {user:'[PLUGIN]', text:`You resized to ${size}px`, color:'pink'});
-                }
-            }
+            if(cmd === '/help') socket.emit('chatMsg', {user:'[HELP]', text:'Commands: /kick <name>, /map <arena/maze>, /mode <ffa/koth/ctf>, /size <10-100>', color:'gold'});
+            else if(cmd === '/kick' && isHost) { let t = Object.keys(lobbies[lid].players).find(k => lobbies[lid].players[k].username === args[1]); if(t) { io.to(t).emit('disconnect'); delete lobbies[lid].players[t]; } }
+            else if(cmd === '/map' && isHost) { let i = (args[1]?.toLowerCase() === 'maze') ? 1 : 0; lobbies[lid].resetGame(lobbies[lid].gameState.mode, i); }
+            else if(cmd === '/mode' && isHost) { let m = args[1]?.toUpperCase(); if(['FFA','KOTH','CTF','ZOMBIES'].includes(m)) lobbies[lid].resetGame(m, lobbies[lid].gameState.mapIndex); }
+            else if(cmd === '/size') { let s = parseInt(args[1]); if(s >= 10 && s <= 100) p.w = s; p.h = s; }
             return;
         }
-
         io.to(lid).emit('chatMsg', { user:`[Lvl ${p.level}] ${p.username}`, text:m.substring(0,60), color:p.color });
     });
 
@@ -282,13 +284,12 @@ io.on('connection', (socket) => {
         if(lid && lobbies[lid]) {
             delete lobbies[lid].players[socket.id];
             delete socketLobbyMap[socket.id];
-            // If lobby empty, delete it
             if(Object.keys(lobbies[lid].players).length === 0) delete lobbies[lid];
+            io.emit('lobbyUpdate'); // Update counts
         }
     });
 });
 
-// --- MAIN GAME LOOP (Handles ALL Lobbies) ---
 setInterval(() => {
     Object.values(lobbies).forEach(lobby => {
         updateLobby(lobby);
@@ -297,67 +298,33 @@ setInterval(() => {
 }, 1000/60);
 
 function updateLobby(g) {
-    // 1. ZOMBIE LOGIC
     if(g.gameState.mode === 'ZOMBIES') {
         let activeZombies = Object.values(g.players).filter(p => p.type === 'zombie');
-        if(activeZombies.length === 0) {
-            g.gameState.wave++;
-            io.to(g.id).emit('chatMsg', { user: '[SYSTEM]', text: `WAVE ${g.gameState.wave} STARTED!`, color: 'red' });
-            g.spawnZombies(5 + (g.gameState.wave * 2));
-        }
+        if(activeZombies.length === 0) { g.gameState.wave++; io.to(g.id).emit('chatMsg', { user: '[SYSTEM]', text: `WAVE ${g.gameState.wave} STARTED!`, color: 'red' }); g.spawnZombies(5 + (g.gameState.wave * 2)); }
         activeZombies.forEach(z => {
             let target = null, minDist = 9999;
-            for(let id in g.players) {
-                let p = g.players[id];
-                if(p.type === 'player' && !p.dead) {
-                    let d = Math.hypot(p.x - z.x, p.y - z.y);
-                    if(d < minDist) { minDist = d; target = p; }
-                }
-            }
+            for(let id in g.players) { let p = g.players[id]; if(p.type === 'player' && !p.dead) { let d = Math.hypot(p.x - z.x, p.y - z.y); if(d < minDist) { minDist = d; target = p; } } }
             if(target) {
-                let angle = Math.atan2(target.y - z.y, target.x - z.x);
-                z.angle = angle;
-                z.vx += Math.cos(angle) * (z.speed * 0.2);
-                z.vy += Math.sin(angle) * (z.speed * 0.2);
-                if(minDist < 40) {
-                    target.hp -= 2; 
-                    if(target.hp <= 0) handleDeath(g, target, z);
-                }
+                let angle = Math.atan2(target.y - z.y, target.x - z.x); z.angle = angle;
+                z.vx += Math.cos(angle) * (z.speed * 0.2); z.vy += Math.sin(angle) * (z.speed * 0.2);
+                if(minDist < 40) { target.hp -= 2; if(target.hp <= 0) handleDeath(g, target, z); }
             }
         });
     }
-
-    // 2. PHYSICS
     for(let id in g.players) {
-        let p = g.players[id];
-        p.x+=p.vx; p.y+=p.vy; p.vx*=0.9; p.vy*=0.9;
-        
-        if(p.type === 'player' && !p.dead) { 
-            if(p.dashTimer>0) p.dashTimer--; if(p.shootTimer>0) p.shootTimer--; 
-            if(p.grapple.active) { p.vx+=(p.grapple.x-(p.x+20))*0.002; p.vy+=(p.grapple.y-(p.y+20))*0.002; } 
-        }
-        
-        if(!p.dead) {
-            g.gameState.walls.forEach(w=>{ if(p.x<w.x+w.w && p.x+p.w>w.x && p.y<w.y+w.h && p.y+p.h>w.y) { p.x-=p.vx*1.2; p.y-=p.vy*1.2; p.vx=0; p.vy=0; } });
-        }
+        let p = g.players[id]; p.x+=p.vx; p.y+=p.vy; p.vx*=0.9; p.vy*=0.9;
+        if(p.type === 'player' && !p.dead) { if(p.dashTimer>0) p.dashTimer--; if(p.shootTimer>0) p.shootTimer--; if(p.grapple.active) { p.vx+=(p.grapple.x-(p.x+20))*0.002; p.vy+=(p.grapple.y-(p.y+20))*0.002; } }
+        if(!p.dead) g.gameState.walls.forEach(w=>{ if(p.x<w.x+w.w && p.x+p.w>w.x && p.y<w.y+w.h && p.y+p.h>w.y) { p.x-=p.vx*1.2; p.y-=p.vy*1.2; p.vx=0; p.vy=0; } });
     }
-
-    // 3. BULLETS
     for(let i=g.bullets.length-1; i>=0; i--) {
         let b=g.bullets[i]; b.x+=b.vx; b.y+=b.vy; b.life--;
         let hit = g.gameState.walls.some(w=>b.x>w.x && b.x<w.x+w.w && b.y>w.y && b.y<w.y+w.h);
-        let s = g.players[b.owner]; 
-        if(!s) { g.bullets.splice(i,1); continue; }
-
+        let s = g.players[b.owner]; if(!s) { g.bullets.splice(i,1); continue; }
         if(!hit) {
             for(let id in g.players) {
-                let p = g.players[id];
-                if(p.dead) continue; 
+                let p = g.players[id]; if(p.dead) continue;
                 let canHit = (g.gameState.mode === 'FFA' || (g.gameState.mode === 'ZOMBIES' && s.type !== p.type) || p.team !== s.team) && b.owner !== id;
-                if(canHit && b.x>p.x && b.x<p.x+p.w && b.y>p.y && b.y<p.y+p.h) {
-                    p.hp-=b.dmg; hit=true;
-                    if(p.hp<=0) handleDeath(g, p, s);
-                }
+                if(canHit && b.x>p.x && b.x<p.x+p.w && b.y>p.y && b.y<p.y+p.h) { p.hp-=b.dmg; hit=true; if(p.hp<=0) handleDeath(g, p, s); }
             }
         }
         if(hit || b.life<=0) g.bullets.splice(i,1);
@@ -365,26 +332,9 @@ function updateLobby(g) {
 }
 
 function handleDeath(lobby, victim, killer) {
-    if(killer && killer.type === 'player') { 
-        killer.score+=10; killer.money+=25; killer.xp+=50; killer.level=getLevel(killer.xp); 
-        if(userDB[killer.username]) { userDB[killer.username].money=killer.money; userDB[killer.username].xp=killer.xp; saveDB(); } 
-    }
-    
-    if(victim.type === 'zombie' || victim.isDummy) {
-        delete lobby.players[victim.id];
-    } else {
-        if(lobby.gameState.mode === 'ZOMBIES') {
-            victim.lives--;
-            if(victim.lives <= 0) {
-                victim.dead = true; 
-                io.to(lobby.id).emit('chatMsg', { user: '[SYSTEM]', text: `${victim.username} is out!`, color: 'red' });
-            } else {
-                lobby.respawn(victim);
-            }
-        } else {
-            lobby.respawn(victim);
-        }
-    }
+    if(killer && killer.type === 'player') { killer.score+=10; killer.money+=25; killer.xp+=50; killer.level=getLevel(killer.xp); if(userDB[killer.username]) { userDB[killer.username].money=killer.money; userDB[killer.username].xp=killer.xp; saveDB(); } }
+    if(victim.type === 'zombie' || victim.isDummy) delete lobby.players[victim.id];
+    else { if(lobby.gameState.mode === 'ZOMBIES') { victim.lives--; if(victim.lives <= 0) { victim.dead = true; io.to(lobby.id).emit('chatMsg', { user: '[SYSTEM]', text: `${victim.username} is out!`, color: 'red' }); } else lobby.respawn(victim); } else lobby.respawn(victim); }
 }
 
 const PORT = process.env.PORT || 3000;

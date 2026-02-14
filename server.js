@@ -27,8 +27,20 @@ const WEAPONS = {
 // --- DATABASE ---
 const DB_FILE = 'database.json';
 let userDB = {};
-if (fs.existsSync(DB_FILE)) { try { userDB = JSON.parse(fs.readFileSync(DB_FILE)); } catch(e) {} }
-function saveDB() { fs.writeFileSync(DB_FILE, JSON.stringify(userDB)); }
+
+// Load Database safely
+if (fs.existsSync(DB_FILE)) { 
+    try { 
+        userDB = JSON.parse(fs.readFileSync(DB_FILE)); 
+        console.log("Database loaded. Accounts:", Object.keys(userDB).length);
+    } catch(e) { 
+        console.log("Database error:", e); 
+    } 
+}
+
+function saveDB() { 
+    fs.writeFileSync(DB_FILE, JSON.stringify(userDB, null, 2)); 
+}
 
 // --- STATE ---
 const players = {};
@@ -47,24 +59,73 @@ function getSafeSpawn() {
 
 io.on('connection', (socket) => {
     
+    // --- SIGN UP ---
     socket.on('signup', (data) => {
-        if (userDB[data.user]) return socket.emit('authMsg', { success: false, msg: "Taken!" });
-        userDB[data.user] = { password: data.pass, email: data.email, money: 0, hat: 'none' };
+        // Trim removes spaces from start/end
+        const safeUser = data.user.trim();
+        const safePass = data.pass.trim();
+        const safeEmail = data.email.trim();
+
+        if (safeUser.length === 0 || safePass.length === 0) {
+            return socket.emit('authMsg', { success: false, msg: "Invalid input!" });
+        }
+
+        if (userDB[safeUser]) {
+            return socket.emit('authMsg', { success: false, msg: "Username taken!" });
+        }
+
+        // Create Account
+        userDB[safeUser] = { 
+            password: safePass, 
+            email: safeEmail, 
+            money: 0, 
+            hat: 'none' 
+        };
         saveDB();
-        socket.emit('authMsg', { success: true, msg: "Created!" });
+        console.log(`New Account Created: ${safeUser}`);
+        socket.emit('authMsg', { success: true, msg: "Created! Now Log In." });
     });
 
+    // --- LOGIN (Fixed) ---
     socket.on('login', (data) => {
-        const acc = userDB[data.user];
-        if (!acc || acc.password !== data.pass) return socket.emit('authMsg', { success: false, msg: "Fail" });
-        joinGame(socket, data.user, acc, data.color);
+        let inputUser = data.user.trim();
+        const inputPass = data.pass.trim();
+
+        console.log(`Login attempt: ${inputUser} with pass: ${inputPass}`);
+
+        let acc = userDB[inputUser]; // 1. Try finding by Username
+        let realUsername = inputUser;
+
+        // 2. If not found, Try finding by Email
+        if (!acc) {
+            const foundKey = Object.keys(userDB).find(key => userDB[key].email === inputUser);
+            if (foundKey) {
+                acc = userDB[foundKey];
+                realUsername = foundKey; // We found the username associated with that email
+            }
+        }
+
+        if (!acc) {
+            console.log("Login Failed: User/Email not found.");
+            return socket.emit('authMsg', { success: false, msg: "User/Email not found!" });
+        }
+
+        if (acc.password !== inputPass) {
+            console.log("Login Failed: Wrong Password.");
+            return socket.emit('authMsg', { success: false, msg: "Wrong Password!" });
+        }
+
+        console.log("Login Success!");
+        joinGame(socket, realUsername, acc, data.color);
     });
 
     socket.on('guest', (data) => joinGame(socket, "Guest"+Math.floor(Math.random()*99), {money:0, hat:'none', email:''}, data.color));
 
     function joinGame(socket, username, stats, color) {
         const spawn = getSafeSpawn();
+        // Check Owner Email
         const isOwner = (stats.email === 'raidenrmarks12@gmail.com');
+        
         let inventory = ['pistol', 'shotgun', 'ak47'];
         if (isOwner) inventory.push('sniper', 'rpg');
 
@@ -92,13 +153,9 @@ io.on('connection', (socket) => {
         if(p && newName.length > 0 && newName.length < 15) p.username = newName;
     });
 
-    // NEW: CHAT HANDLER
     socket.on('chat', (msg) => {
         const p = players[socket.id];
-        if(p && msg.trim().length > 0) {
-            // Broadcast to everyone with user info
-            io.emit('chatMsg', { user: p.username, text: msg.substring(0, 60), color: p.color });
-        }
+        if(p && msg.trim().length > 0) io.emit('chatMsg', { user: p.username, text: msg.substring(0, 60), color: p.color });
     });
 
     socket.on('switch', (index) => {

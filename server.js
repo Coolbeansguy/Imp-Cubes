@@ -37,7 +37,6 @@ if(fs.existsSync(DB_FILE)) try { userDB=JSON.parse(fs.readFileSync(DB_FILE)); } 
 function saveDB(){ fs.writeFileSync(DB_FILE,JSON.stringify(userDB)); }
 function getLevel(xp) { return Math.floor(Math.sqrt(xp/100))+1; }
 
-// --- LOBBY SYSTEM ---
 const lobbies = {}; 
 const socketLobbyMap = {}; 
 
@@ -55,6 +54,7 @@ class Lobby {
             walls: MAPS[0].walls, scores: { red: 0, blue: 0 },
             flags: [], hill: null, wave: 1, zombiesLeft: 0, juggernautId: null
         };
+        
         let initialMode = settings.mode || 'FFA';
         let initialMap = parseInt(settings.map) || 0;
         this.resetGame(initialMode, initialMap);
@@ -157,7 +157,7 @@ io.on('connection', (socket) => {
             userDB[p.username].money = p.money;
             userDB[p.username].xp = p.xp;
             userDB[p.username].items = p.items;
-            userDB[p.username].equippedHat = p.equippedHat; // Save Hat
+            userDB[p.username].equippedHat = p.equippedHat;
             saveDB();
         }
     };
@@ -181,7 +181,7 @@ io.on('connection', (socket) => {
             id: s.id,
             username: isLogin ? d.user : "Guest"+Math.floor(Math.random()*9999),
             pass: d.pass, 
-            selectedKit: KITS[d.kit] || KITS.assault,
+            selectedKit: KITS.assault, // Default
             money: acc.money, xp: acc.xp, level: getLevel(acc.xp), 
             items: acc.items || [], 
             equippedHat: acc.equippedHat || 'none',
@@ -191,11 +191,9 @@ io.on('connection', (socket) => {
         sendLobbyList(s);
     }
 
-    // --- SHOP & EQUIP ---
     socket.on('buy', (itemId) => {
         if(!currentUser || !SHOP_ITEMS[itemId]) return;
         let item = SHOP_ITEMS[itemId];
-        
         if(currentUser.money >= item.price && !currentUser.items.includes(itemId)) {
             currentUser.money -= item.price;
             currentUser.items.push(itemId);
@@ -245,21 +243,36 @@ io.on('connection', (socket) => {
         let p = {
             ...currentUser,
             id: s.id, team: 'FFA', x:0, y:0, vx:0, vy:0, w:40, h:40, angle:0,
-            kit: currentUser.selectedKit, hp:100, maxHp:100, speed:1,
+            kit: KITS.assault, hp:100, maxHp:100, speed:1,
             color: currentUser.isOwner?'#FFD700':'#4488FF',
             ammo:0, maxAmmo:0, reloading:false, reloadTimer:0, shootTimer:0, dashTimer:0,
-            grapple:{active:false}, score:0, type:'player', dead:false, lives:3,
+            grapple:{active:false}, score:0, type:'player', 
+            dead: true, // START DEAD
+            lives:3,
             hat: currentUser.equippedHat 
         };
         
         lobby.players[s.id] = p;
         lobby.assignTeam(p, Object.keys(lobby.players).length);
-        lobby.respawn(p);
+        // DO NOT RESPAWN YET - Wait for client request
 
         s.emit('startGame', { id: s.id, isOwner: currentUser.isOwner, walls: lobby.gameState.walls, lobbyId: lobbyId, mode: lobby.gameState.mode });
         io.to(lobbyId).emit('chatMsg', { user:'[SYSTEM]', text:`${p.username} joined!`, color:'lime' });
         io.emit('lobbyUpdate');
     }
+
+    // --- REQUEST SPAWN (NEW) ---
+    socket.on('requestSpawn', (kitName) => {
+        let lid = socketLobbyMap[socket.id]; if(!lid || !lobbies[lid]) return;
+        let lobby = lobbies[lid];
+        let p = lobby.players[socket.id];
+        
+        if(p && p.dead) {
+            // Apply Kit
+            if(KITS[kitName]) p.selectedKit = KITS[kitName];
+            lobby.respawn(p);
+        }
+    });
 
     socket.on('input', (d) => {
         let lid = socketLobbyMap[socket.id]; if(!lid || !lobbies[lid]) return;
@@ -279,7 +292,6 @@ io.on('connection', (socket) => {
                 }
             } else { p.reloading=true; p.reloadTimer=p.kit.weapon.reload; }
         }
-        // FIXED GRAPPLE PHYSICS - INCREASED FORCE
         if(d.grapple && !p.grapple.active) { p.grapple.active=true; p.grapple.x=d.gx; p.grapple.y=d.gy; } else if(!d.grapple) p.grapple.active=false;
     });
 
@@ -347,7 +359,6 @@ function updateLobby(g) {
         let p = g.players[id]; p.x+=p.vx; p.y+=p.vy; p.vx*=0.9; p.vy*=0.9;
         if(p.type === 'player' && !p.dead) { 
             if(p.dashTimer>0) p.dashTimer--; if(p.shootTimer>0) p.shootTimer--; 
-            // BUFFED GRAPPLE FORCE
             if(p.grapple.active) { p.vx+=(p.grapple.x-(p.x+20))*0.004; p.vy+=(p.grapple.y-(p.y+20))*0.004; } 
         }
         if(!p.dead) g.gameState.walls.forEach(w=>{ if(p.x<w.x+w.w && p.x+p.w>w.x && p.y<w.y+w.h && p.y+p.h>w.y) { p.x-=p.vx*1.2; p.y-=p.vy*1.2; p.vx=0; p.vy=0; } });
@@ -370,7 +381,16 @@ function updateLobby(g) {
 function handleDeath(lobby, victim, killer) {
     if(killer && killer.type === 'player') { killer.score+=10; killer.money+=25; killer.xp+=50; killer.level=getLevel(killer.xp); if(userDB[killer.username]) { userDB[killer.username].money=killer.money; userDB[killer.username].xp=killer.xp; saveDB(); } }
     if(victim.type === 'zombie' || victim.isDummy) delete lobby.players[victim.id];
-    else { if(lobby.gameState.mode === 'ZOMBIES') { victim.lives--; if(victim.lives <= 0) { victim.dead = true; io.to(lobby.id).emit('chatMsg', { user: '[SYSTEM]', text: `${victim.username} is out!`, color: 'red' }); } else lobby.respawn(victim); } else lobby.respawn(victim); }
+    else { 
+        if(lobby.gameState.mode === 'ZOMBIES') { 
+            victim.lives--; 
+            if(victim.lives <= 0) { victim.dead = true; io.to(lobby.id).emit('chatMsg', { user: '[SYSTEM]', text: `${victim.username} is out!`, color: 'red' }); } 
+            else victim.dead = true; // Wait for respawn click
+        } 
+        else {
+            victim.dead = true; // Just set dead, let client request spawn
+        }
+    }
 }
 
 const PORT = process.env.PORT || 3000;

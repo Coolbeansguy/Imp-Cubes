@@ -6,271 +6,307 @@ const fs = require('fs');
 
 app.use(express.static('public'));
 
-// --- CONFIGURATION ---
-const MAP_SIZE = { x: 2000, y: 1500 };
-const WALLS = [
-    { x: 300, y: 300, w: 100, h: 400 },
-    { x: 800, y: 600, w: 400, h: 100 },
-    { x: 1200, y: 200, w: 200, h: 200 },
-    { x: -50, y: 0, w: 50, h: MAP_SIZE.y }, { x: MAP_SIZE.x, y: 0, w: 50, h: MAP_SIZE.y },
-    { x: 0, y: -50, w: MAP_SIZE.x, h: 50 }, { x: 0, y: MAP_SIZE.y, w: MAP_SIZE.x, h: 50 }
+// --- CONSTANTS & CONFIG ---
+const DB_FILE = 'database.json';
+const ROUND_TIME = 180; // 3 Minutes (in seconds)
+const VOTE_TIME = 15;
+const END_TIME = 10;
+
+// --- MAPS & MODES ---
+const MODES = ['FFA', 'KOTH', 'CTF'];
+const MAPS = [
+    { name: 'Arena', walls: [
+        {x:300,y:300,w:100,h:400}, {x:800,y:600,w:400,h:100}, {x:1200,y:200,w:200,h:200},
+        {x:0,y:0,w:50,h:1500}, {x:1950,y:0,w:50,h:1500}, {x:0,y:0,w:2000,h:50}, {x:0,y:1450,w:2000,h:50}
+    ]},
+    { name: 'Maze', walls: [
+        {x:200,y:0,w:50,h:1200}, {x:600,y:400,w:50,h:1200}, {x:1000,y:0,w:50,h:1000},
+        {x:0,y:0,w:50,h:1500}, {x:1950,y:0,w:50,h:1500}, {x:0,y:0,w:2000,h:50}, {x:0,y:1450,w:2000,h:50}
+    ]}
 ];
 
-const WEAPONS = {
-    pistol:  { name: 'Pistol',  damage: 15, speed: 18, cooldown: 20, size: 5, color: 'gold', count: 1, spread: 0 },
-    shotgun: { name: 'Shotgun', damage: 8,  speed: 15, cooldown: 50, size: 4, color: 'gray', count: 5, spread: 0.3 },
-    ak47:    { name: 'AK-47',   damage: 12, speed: 22, cooldown: 8,  size: 4, color: 'lime', count: 1, spread: 0.1 },
-    sniper:  { name: 'Sniper',  damage: 90, speed: 45, cooldown: 90, size: 4, color: 'cyan', count: 1, spread: 0 },
-    rpg:     { name: 'RPG',     damage: 60, speed: 10, cooldown: 80, size: 12, color: 'orange', count: 1, spread: 0 }
+// --- KITS ---
+const KITS = {
+    shotgun: { name: 'Breacher', hp: 150, speed: 0.9, weapon: { damage: 12, speed: 18, cooldown: 55, count: 6, spread: 0.35, range: 40 } },
+    assault: { name: 'Soldier', hp: 100, speed: 1.0, weapon: { damage: 14, speed: 25, cooldown: 9, count: 1, spread: 0.05, range: 100 } },
+    sniper:  { name: 'Recon', hp: 75, speed: 1.1, weapon: { damage: 110, speed: 50, cooldown: 90, count: 1, spread: 0, range: 200 } },
+    tank:    { name: 'Juggernaut', hp: 250, speed: 0.6, weapon: { damage: 70, speed: 14, cooldown: 80, count: 1, spread: 0, range: 100 } }
 };
 
-// --- DATABASE ---
-const DB_FILE = 'database.json';
+// --- GAME STATE ---
+let players = {};
+let bullets = [];
 let userDB = {};
 
-// Load Database safely
-if (fs.existsSync(DB_FILE)) { 
-    try { 
-        userDB = JSON.parse(fs.readFileSync(DB_FILE)); 
-        console.log("Database loaded. Accounts:", Object.keys(userDB).length);
-    } catch(e) { 
-        console.log("Database error:", e); 
-    } 
-}
+let gameState = {
+    phase: 'WARMUP', // WARMUP, GAME, END, VOTE
+    timer: 0,
+    mode: 'FFA',
+    mapIndex: 0,
+    walls: MAPS[0].walls,
+    scores: { red: 0, blue: 0 }, // For Team Modes
+    flags: [], // For CTF
+    hill: null, // For KOTH
+    votes: { map: {}, mode: {} }
+};
 
-function saveDB() { 
-    fs.writeFileSync(DB_FILE, JSON.stringify(userDB, null, 2)); 
-}
+// Load DB
+if (fs.existsSync(DB_FILE)) { try { userDB = JSON.parse(fs.readFileSync(DB_FILE)); } catch(e) {} }
+function saveDB() { fs.writeFileSync(DB_FILE, JSON.stringify(userDB)); }
 
-// --- STATE ---
-const players = {};
-const bullets = [];
-
-function getSafeSpawn() {
-    let x, y, hit, attempts = 0;
+// --- HELPERS ---
+function getSpawn(team) {
+    // Simple spawn logic: Red left, Blue right, FFA random
+    let x, y, hit;
+    let attempts = 0;
     do {
-        x = Math.random() * (MAP_SIZE.x - 100) + 50;
-        y = Math.random() * (MAP_SIZE.y - 100) + 50;
-        hit = WALLS.some(w => x < w.x + w.w && x + 40 > w.x && y < w.y + w.h && y + 40 > w.y);
+        if (gameState.mode === 'FFA') {
+            x = Math.random() * 1800 + 100;
+        } else if (team === 'RED') {
+            x = Math.random() * 400 + 100; // Left side
+        } else {
+            x = Math.random() * 400 + 1500; // Right side
+        }
+        y = Math.random() * 1300 + 100;
+        hit = gameState.walls.some(w => x < w.x + w.w && x + 40 > w.x && y < w.y + w.h && y + 40 > w.y);
         attempts++;
     } while (hit && attempts < 100);
     return { x, y };
 }
 
-io.on('connection', (socket) => {
-    
-    // --- SIGN UP ---
-    socket.on('signup', (data) => {
-        // Trim removes spaces from start/end
-        const safeUser = data.user.trim();
-        const safePass = data.pass.trim();
-        const safeEmail = data.email.trim();
+function resetGame(newMode, newMapIndex) {
+    gameState.mode = newMode;
+    gameState.mapIndex = newMapIndex;
+    gameState.walls = MAPS[newMapIndex].walls;
+    gameState.scores = { red: 0, blue: 0 };
+    gameState.timer = ROUND_TIME;
+    gameState.phase = 'GAME';
+    bullets = [];
 
-        if (safeUser.length === 0 || safePass.length === 0) {
-            return socket.emit('authMsg', { success: false, msg: "Invalid input!" });
-        }
-
-        if (userDB[safeUser]) {
-            return socket.emit('authMsg', { success: false, msg: "Username taken!" });
-        }
-
-        // Create Account
-        userDB[safeUser] = { 
-            password: safePass, 
-            email: safeEmail, 
-            money: 0, 
-            hat: 'none' 
-        };
-        saveDB();
-        console.log(`New Account Created: ${safeUser}`);
-        socket.emit('authMsg', { success: true, msg: "Created! Now Log In." });
-    });
-
-    // --- LOGIN (Fixed) ---
-    socket.on('login', (data) => {
-        let inputUser = data.user.trim();
-        const inputPass = data.pass.trim();
-
-        console.log(`Login attempt: ${inputUser} with pass: ${inputPass}`);
-
-        let acc = userDB[inputUser]; // 1. Try finding by Username
-        let realUsername = inputUser;
-
-        // 2. If not found, Try finding by Email
-        if (!acc) {
-            const foundKey = Object.keys(userDB).find(key => userDB[key].email === inputUser);
-            if (foundKey) {
-                acc = userDB[foundKey];
-                realUsername = foundKey; // We found the username associated with that email
-            }
-        }
-
-        if (!acc) {
-            console.log("Login Failed: User/Email not found.");
-            return socket.emit('authMsg', { success: false, msg: "User/Email not found!" });
-        }
-
-        if (acc.password !== inputPass) {
-            console.log("Login Failed: Wrong Password.");
-            return socket.emit('authMsg', { success: false, msg: "Wrong Password!" });
-        }
-
-        console.log("Login Success!");
-        joinGame(socket, realUsername, acc, data.color);
-    });
-
-    socket.on('guest', (data) => joinGame(socket, "Guest"+Math.floor(Math.random()*99), {money:0, hat:'none', email:''}, data.color));
-
-    function joinGame(socket, username, stats, color) {
-        const spawn = getSafeSpawn();
-        // Check Owner Email
-        const isOwner = (stats.email === 'raidenrmarks12@gmail.com');
-        
-        let inventory = ['pistol', 'shotgun', 'ak47'];
-        if (isOwner) inventory.push('sniper', 'rpg');
-
-        players[socket.id] = {
-            id: socket.id,
-            x: spawn.x, y: spawn.y, w: 40, h: 40,
-            vx: 0, vy: 0,
-            hp: isOwner ? 300 : 100, maxHp: isOwner ? 300 : 100,
-            color: isOwner ? '#FFD700' : (color || '#4488FF'),
-            username: username,
-            inventory: inventory,
-            activeWeapon: 0,
-            weapon: WEAPONS['pistol'],
-            money: stats.money,
-            hat: stats.hat,
-            grapple: { active: false, x: 0, y: 0 },
-            dashCooldown: 0,
-            score: 0
-        };
-        socket.emit('startGame', { mapSize: MAP_SIZE, id: socket.id });
+    // Setup Objectives
+    if (gameState.mode === 'KOTH') {
+        gameState.hill = { x: 900, y: 650, w: 200, h: 200, owner: null, progress: 0 };
+    } else {
+        gameState.hill = null;
     }
 
-    socket.on('rename', (newName) => {
-        const p = players[socket.id];
-        if(p && newName.length > 0 && newName.length < 15) p.username = newName;
-    });
+    if (gameState.mode === 'CTF') {
+        gameState.flags = [
+            { team: 'RED', x: 100, y: 750, base: {x:100, y:750}, carrier: null },
+            { team: 'BLUE', x: 1900, y: 750, base: {x:1900, y:750}, carrier: null }
+        ];
+    } else {
+        gameState.flags = [];
+    }
 
-    socket.on('chat', (msg) => {
-        const p = players[socket.id];
-        if(p && msg.trim().length > 0) io.emit('chatMsg', { user: p.username, text: msg.substring(0, 60), color: p.color });
-    });
-
-    socket.on('switch', (index) => {
-        const p = players[socket.id];
-        if(!p || !p.inventory[index]) return;
-        p.activeWeapon = index;
-        p.weapon = WEAPONS[p.inventory[index]];
-    });
-
-    socket.on('input', (data) => {
-        const p = players[socket.id];
-        if (!p) return;
-
-        p.angle = data.angle;
-
-        if (data.dash && p.dashCooldown <= 0) {
-            const speed = 25; 
-            if (data.up) p.vy -= speed;
-            if (data.down) p.vy += speed;
-            if (data.left) p.vx -= speed;
-            if (data.right) p.vx += speed;
-            if(!data.up && !data.down && !data.left && !data.right) {
-                p.vx = Math.cos(p.angle) * speed; p.vy = Math.sin(p.angle) * speed;
-            }
-            p.dashCooldown = 60;
+    // Respawn All Players & Assign Teams
+    let pIds = Object.keys(players);
+    pIds.forEach((id, i) => {
+        let p = players[id];
+        if (gameState.mode !== 'FFA') {
+            p.team = (i % 2 === 0) ? 'RED' : 'BLUE'; // Simple alternating assign
+            p.color = (p.team === 'RED') ? '#ff4444' : '#4488ff';
         } else {
-            let speed = 0.8;
-            if (data.up) p.vy -= speed; if (data.down) p.vy += speed;
-            if (data.left) p.vx -= speed; if (data.right) p.vx += speed;
+            p.team = 'FFA';
+            // Reset color if not owner
+            if(p.maxHp < 300) p.color = p.originalColor || '#4488FF'; 
         }
+        p.score = 0; // Reset round score
+        p.deaths = 0;
+        p.kills = 0;
+        respawnPlayer(p);
+    });
+}
 
-        if (data.shoot && (!p.shootTimer || p.shootTimer <= 0)) {
-            p.shootTimer = p.weapon.cooldown;
-            const count = p.weapon.count || 1;
-            const spread = p.weapon.spread || 0;
-            for(let i=0; i<count; i++) {
-                const angleOffset = (Math.random() - 0.5) * spread;
-                bullets.push({
-                    x: p.x + 20, y: p.y + 20,
-                    vx: Math.cos(p.angle + angleOffset) * p.weapon.speed,
-                    vy: Math.sin(p.angle + angleOffset) * p.weapon.speed,
-                    damage: p.weapon.damage, size: p.weapon.size, color: p.weapon.color,
-                    owner: socket.id, life: 100
-                });
-            }
-        }
-        
-        if (data.grapple && !p.grapple.active) {
-             if(data.gx) { p.grapple.active = true; p.grapple.x = data.gx; p.grapple.y = data.gy; }
-        } else if(!data.grapple) p.grapple.active = false;
+function respawnPlayer(p) {
+    let spawn = getSpawn(p.team);
+    p.x = spawn.x; p.y = spawn.y;
+    p.hp = p.maxHp;
+    p.vx = 0; p.vy = 0;
+}
+
+// --- SOCKETS ---
+io.on('connection', (socket) => {
+    socket.on('login', (data) => handleAuth(socket, data, true));
+    socket.on('guest', (data) => handleAuth(socket, data, false));
+    socket.on('signup', (data) => {
+        if(userDB[data.user]) return socket.emit('authMsg', {success:false, msg:"Taken"});
+        userDB[data.user] = { pass: data.pass, email: data.email, money:0, hat:'none' };
+        saveDB(); socket.emit('authMsg', {success:true, msg:"Created"});
     });
 
-    socket.on('buy', (item) => {
-        const p = players[socket.id];
-        if (!p || !userDB[p.username]) return;
-        let cost = (item === 'hat_top') ? 100 : 250;
-        if (p.money >= cost) {
-            p.money -= cost; p.hat = item;
-            userDB[p.username].money = p.money; userDB[p.username].hat = p.hat;
-            saveDB();
-        }
+    socket.on('input', (data) => handleInput(socket, data));
+    socket.on('vote', (data) => {
+        if (gameState.phase !== 'VOTE') return;
+        // Tally votes
+        if (data.type === 'map') gameState.votes.map[data.val] = (gameState.votes.map[data.val] || 0) + 1;
+        if (data.type === 'mode') gameState.votes.mode[data.val] = (gameState.votes.mode[data.val] || 0) + 1;
     });
 
     socket.on('disconnect', () => delete players[socket.id]);
 });
 
+function handleAuth(socket, data, isLogin) {
+    let acc = isLogin ? userDB[data.user] : { money: 0, hat: 'none' };
+    if (isLogin && (!acc || acc.pass !== data.pass)) return socket.emit('authMsg', {success:false, msg:"Fail"});
+
+    let kit = KITS[data.kit] || KITS.assault;
+    let isOwner = acc.email === 'raidenrmarks12@gmail.com';
+    if(isOwner) kit = { name:'OWNER', hp:500, speed:1.2, weapon:{damage:100,speed:25,cooldown:10,count:1,spread:0.05,range:200}};
+
+    players[socket.id] = {
+        id: socket.id,
+        username: isLogin ? data.user : "Guest"+Math.floor(Math.random()*100),
+        team: 'FFA', color: isOwner ? '#FFD700' : '#4488FF', originalColor: isOwner ? '#FFD700' : '#4488FF',
+        x:0, y:0, vx:0, vy:0, w:40, h:40,
+        hp: kit.hp, maxHp: kit.hp, speed: kit.speed, weapon: kit.weapon,
+        kit: kit.name, money: acc.money, hat: acc.hat,
+        kills: 0, deaths: 0, score: 0,
+        grapple: {active:false}, shootTimer:0, dashTimer:0
+    };
+    respawnPlayer(players[socket.id]);
+    socket.emit('startGame', { id: socket.id });
+}
+
+function handleInput(s, d) {
+    let p = players[s.id]; if(!p) return;
+    p.angle = d.angle;
+    
+    // Move
+    let spd = p.speed * (d.dash && p.dashTimer<=0 ? 25 : 0.8);
+    if(d.dash && p.dashTimer<=0) p.dashTimer=60;
+    if(d.up) p.vy-=spd; if(d.down) p.vy+=spd; if(d.left) p.vx-=spd; if(d.right) p.vx+=spd;
+
+    // Shoot
+    if(d.shoot && p.shootTimer<=0) {
+        p.shootTimer = p.weapon.cooldown;
+        for(let i=0; i<(p.weapon.count||1); i++) {
+            let a = p.angle + (Math.random()-0.5)*(p.weapon.spread||0);
+            bullets.push({ x:p.x+20, y:p.y+20, vx:Math.cos(a)*p.weapon.speed, vy:Math.sin(a)*p.weapon.speed, damage:p.weapon.damage, owner:s.id, life:p.weapon.range||100 });
+        }
+    }
+    // Grapple
+    if(d.grapple && !p.grapple.active) { p.grapple.active=true; p.grapple.x=d.gx; p.grapple.y=d.gy; }
+    else if(!d.grapple) p.grapple.active=false;
+}
+
+// --- MAIN LOOP ---
 setInterval(() => {
-    for (const id in players) {
-        const p = players[id];
-        p.x += p.vx; p.y += p.vy;
-        p.vx *= 0.9; p.vy *= 0.9;
-        if (p.shootTimer > 0) p.shootTimer--;
-        if (p.dashCooldown > 0) p.dashCooldown--;
-        
-        WALLS.forEach(w => {
-            if (p.x < w.x + w.w && p.x + p.w > w.x && p.y < w.y + w.h && p.y + p.h > w.y) {
-                p.x -= p.vx * 1.2; p.y -= p.vy * 1.2; p.vx = 0; p.vy = 0;
+    // 1. GAME LOGIC
+    if (gameState.phase === 'GAME') {
+        gameState.timer--;
+        if (gameState.timer <= 0) {
+            gameState.phase = 'END';
+            gameState.timer = END_TIME;
+            // Send leaderboard
+            let sorted = Object.values(players).sort((a,b) => b.score - a.score).slice(0,5);
+            io.emit('gameover', { top: sorted, scores: gameState.scores });
+        }
+
+        // KOTH Logic
+        if (gameState.mode === 'KOTH' && gameState.hill) {
+            let redCount = 0, blueCount = 0;
+            for(let id in players) {
+                let p = players[id];
+                if(p.x > gameState.hill.x && p.x < gameState.hill.x+gameState.hill.w && p.y > gameState.hill.y && p.y < gameState.hill.y+gameState.hill.h) {
+                    if(p.team === 'RED') redCount++; else if(p.team === 'BLUE') blueCount++;
+                }
             }
-        });
-        if(p.grapple.active) {
-            const dx = p.grapple.x - (p.x+20), dy = p.grapple.y - (p.y+20);
-            p.vx += dx * 0.002; p.vy += dy * 0.002;
+            if(redCount > blueCount) gameState.scores.red++;
+            else if(blueCount > redCount) gameState.scores.blue++;
+        }
+        
+        // CTF Logic is handled in collision
+    } 
+    else if (gameState.phase === 'END') {
+        gameState.timer--;
+        if (gameState.timer <= 0) {
+            gameState.phase = 'VOTE';
+            gameState.timer = VOTE_TIME;
+            gameState.votes = { map:{}, mode:{} }; // Reset votes
+        }
+    }
+    else if (gameState.phase === 'VOTE') {
+        gameState.timer--;
+        if (gameState.timer <= 0) {
+            // Count votes
+            let maxMode = 'FFA', maxMV = 0;
+            for(let m in gameState.votes.mode) if(gameState.votes.mode[m] > maxMV) { maxMode = m; maxMV = gameState.votes.mode[m]; }
+            
+            let maxMap = 0, maxMapV = 0;
+            for(let m in gameState.votes.map) if(gameState.votes.map[m] > maxMapV) { maxMap = parseInt(m); maxMapV = gameState.votes.map[m]; }
+
+            resetGame(maxMode, maxMap);
         }
     }
 
-    for (let i = bullets.length - 1; i >= 0; i--) {
-        const b = bullets[i];
-        b.x += b.vx; b.y += b.vy; b.life--;
-        let hit = false;
-        if(WALLS.some(w => b.x > w.x && b.x < w.x + w.w && b.y > w.y && b.y < w.y + w.h)) hit = true;
+    // 2. PHYSICS
+    for (let id in players) {
+        let p = players[id];
+        p.x+=p.vx; p.y+=p.vy; p.vx*=0.9; p.vy*=0.9;
+        if(p.dashTimer>0) p.dashTimer--; if(p.shootTimer>0) p.shootTimer--;
+        
+        gameState.walls.forEach(w => {
+            if(p.x < w.x+w.w && p.x+p.w > w.x && p.y < w.y+w.h && p.y+p.h > w.y) {
+                p.x-=p.vx*1.2; p.y-=p.vy*1.2; p.vx=0; p.vy=0;
+            }
+        });
+        if(p.grapple.active) { p.vx += (p.grapple.x-(p.x+20))*0.002; p.vy += (p.grapple.y-(p.y+20))*0.002; }
+        
+        // CTF Flag Pickup
+        if (gameState.mode === 'CTF') {
+            gameState.flags.forEach(f => {
+                // Pickup enemy flag
+                if (!f.carrier && p.team !== f.team && Math.hypot(p.x-f.x, p.y-f.y) < 40) f.carrier = p.id;
+                // Capture (have flag, touch own base)
+                if (f.carrier === p.id && Math.hypot(p.x-f.base.x, p.y-f.base.y) < 50) {
+                    gameState.scores[p.team.toLowerCase()]++; // Point!
+                    p.score += 100; // Personal score
+                    f.carrier = null; f.x = f.base.x; f.y = f.base.y; // Reset
+                }
+            });
+        }
+    }
 
+    // 3. BULLETS & COMBAT
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        let b = bullets[i]; b.x+=b.vx; b.y+=b.vy; b.life--;
+        let hit = false;
+        if(gameState.walls.some(w => b.x>w.x && b.x<w.x+w.w && b.y>w.y && b.y<w.y+w.h)) hit=true;
+        
         if(!hit) {
-            for(const id in players) {
-                const p = players[id];
-                if(b.owner !== id && b.x > p.x && b.x < p.x + p.w && b.y > p.y && b.y < p.y + p.h) {
+            for(let id in players) {
+                let p = players[id];
+                if(b.owner !== id && (gameState.mode === 'FFA' || p.team !== players[b.owner].team) && 
+                   b.x>p.x && b.x<p.x+p.w && b.y>p.y && b.y<p.y+p.h) {
                     p.hp -= b.damage; hit = true;
                     if(p.hp <= 0) {
-                        const spawn = getSafeSpawn();
-                        p.x = spawn.x; p.y = spawn.y; p.hp = p.maxHp;
-                        if (players[b.owner]) {
-                            players[b.owner].score++;
-                            players[b.owner].money += 50;
-                            if(userDB[players[b.owner].username]) {
-                                userDB[players[b.owner].username].money = players[b.owner].money;
-                                saveDB();
-                            }
+                        let killer = players[b.owner];
+                        if(killer) { 
+                            killer.kills++; killer.score += 10; killer.money += 10;
+                            if(userDB[killer.username]) { userDB[killer.username].money=killer.money; saveDB(); }
                         }
+                        p.deaths++;
+                        // CTF Drop Flag
+                        if(gameState.mode === 'CTF') {
+                            gameState.flags.forEach(f => { if(f.carrier === p.id) { f.carrier = null; f.x = p.x; f.y = p.y; } });
+                        }
+                        respawnPlayer(p);
                     }
                 }
             }
         }
         if(hit || b.life <= 0) bullets.splice(i, 1);
     }
-    io.emit('state', { players, bullets, walls: WALLS });
+
+    // Update flags position to carrier
+    if(gameState.mode === 'CTF') {
+        gameState.flags.forEach(f => {
+            if(f.carrier && players[f.carrier]) { f.x = players[f.carrier].x; f.y = players[f.carrier].y; }
+        });
+    }
+
+    io.emit('state', { players, bullets, game: gameState });
 }, 1000/60);
 
-const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+http.listen(process.env.PORT || 3000, () => console.log('Server running'));

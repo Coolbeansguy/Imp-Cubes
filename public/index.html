@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Imp Cubes - Ultimate UI</title>
+    <title>Imp Cubes - Chat & Controls</title>
     <style>
         body { margin: 0; background: #0a0a10; overflow: hidden; font-family: 'Segoe UI', sans-serif; color: white; }
         canvas { display: block; position: absolute; top: 0; left: 0; }
 
-        /* --- GLASSMORPHISM UI --- */
+        /* GLASS STYLE */
         .glass-panel {
             background: rgba(20, 20, 30, 0.85);
             backdrop-filter: blur(10px);
@@ -25,52 +25,50 @@
         }
 
         .authBox { width: 320px; display: flex; flex-direction: column; gap: 10px; }
-        
         h1 { margin: 0 0 10px 0; color: #4488FF; font-weight: 800; font-size: 2.5em; text-shadow: 0 0 15px rgba(68,136,255,0.5); }
-        
-        input { 
-            width: 100%; padding: 12px; 
-            background: rgba(0,0,0,0.4); border: 1px solid #444; 
-            color: white; border-radius: 6px; box-sizing: border-box; 
-            transition: 0.2s;
-        }
-        input:focus { border-color: #4488FF; outline: none; background: rgba(0,0,0,0.6); }
+        input { width: 100%; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid #444; color: white; border-radius: 6px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 12px; cursor: pointer; border: none; font-weight: bold; border-radius: 6px; }
+        .btn-blue { background: #4488FF; color: white; } .btn-green { background: #00b894; color: white; } .btn-outline { background: transparent; border: 1px solid #555; color: #aaa; }
 
-        .btn { 
-            width: 100%; padding: 12px; cursor: pointer; border: none; 
-            font-weight: bold; border-radius: 6px; transition: 0.2s; 
-            text-transform: uppercase; letter-spacing: 1px;
-        }
-        .btn-blue { background: #4488FF; color: white; }
-        .btn-blue:hover { background: #6699FF; box-shadow: 0 0 10px #4488FF; }
-        .btn-green { background: #00b894; color: white; }
-        .btn-green:hover { background: #00d2a8; box-shadow: 0 0 10px #00b894; }
-        .btn-outline { background: transparent; border: 1px solid #555; color: #aaa; }
-        .btn-outline:hover { border-color: #fff; color: #fff; }
-
-        /* PAUSE MENU */
-        #pauseMenu {
-            display: none; position: absolute; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.6); z-index: 50;
-            align-items: center; justify-content: center;
-        }
+        #pauseMenu { display: none; position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 50; align-items: center; justify-content: center; }
         .menuPanel { width: 450px; }
-        
         .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
         .tabBtn { flex: 1; padding: 10px; background: rgba(255,255,255,0.05); border: none; color: #888; cursor: pointer; border-radius: 6px; }
         .tabBtn.active { background: #4488FF; color: white; }
-
-        .section { display: none; text-align: left; }
-        .section.active { display: block; animation: fadeIn 0.3s; }
-        
+        .section { display: none; text-align: left; } .section.active { display: block; animation: fadeIn 0.3s; }
         .shopItem { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #333; }
+
+        /* --- CONTROLS OVERLAY --- */
+        #controlsHelp {
+            position: absolute; top: 10px; right: 10px; z-index: 10;
+            background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px;
+            font-size: 13px; color: #ccc; pointer-events: none;
+            border: 1px solid #333;
+        }
+        #controlsHelp h4 { margin: 0 0 5px 0; color: #fff; border-bottom: 1px solid #555; padding-bottom: 3px; }
+
+        /* --- CHAT BOX --- */
+        #chatBox {
+            position: absolute; bottom: 10px; left: 10px; z-index: 20;
+            width: 300px;
+        }
+        #chatMessages {
+            height: 150px; overflow-y: auto; 
+            text-shadow: 1px 1px 0 #000;
+            margin-bottom: 5px;
+            display: flex; flex-direction: column; justify-content: flex-end;
+        }
+        .chat-line { margin-bottom: 2px; font-size: 14px; }
+        #chatInput {
+            width: 100%; padding: 8px; background: rgba(0,0,0,0.6);
+            border: 1px solid #444; color: white; border-radius: 4px;
+            display: none; /* Hidden until active */
+        }
+        #chatInput.visible { display: block; }
 
         /* HUD */
         #hud { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 5; display: none; pointer-events: none; }
-        .hud-bar { 
-            background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 20px; 
-            display: flex; gap: 15px; align-items: center; backdrop-filter: blur(4px); border: 1px solid #444;
-        }
+        .hud-bar { background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 20px; display: flex; gap: 15px; align-items: center; backdrop-filter: blur(4px); border: 1px solid #444; }
         .weapon-icon { padding: 5px 10px; border-radius: 5px; color: #888; font-size: 14px; font-weight: bold; }
         .weapon-active { color: #FFD700; background: rgba(255, 215, 0, 0.15); border: 1px solid rgba(255,215,0,0.3); }
 
@@ -85,11 +83,7 @@
             <input id="user" placeholder="Username">
             <input id="email" placeholder="Email (Owner Only)">
             <input id="pass" type="password" placeholder="Password">
-            <div style="display:flex; gap:10px; align-items:center; width:100%;">
-                <span style="color:#aaa; font-size:14px;">Skin:</span>
-                <input id="color" type="color" value="#4488FF" style="height:40px; border:none; padding:0; cursor:pointer;">
-            </div>
-            
+            <input id="color" type="color" value="#4488FF" style="height:40px; border:none; padding:0; cursor:pointer;">
             <button class="btn btn-blue" onclick="login()">Log In</button>
             <button class="btn btn-green" onclick="signup()">Sign Up</button>
             <button class="btn btn-outline" onclick="guest()">Guest</button>
@@ -97,50 +91,44 @@
         </div>
     </div>
 
+    <div id="controlsHelp" style="display:none;">
+        <h4>CONTROLS</h4>
+        <div><b>WASD</b> - Move</div>
+        <div><b>SHIFT</b> - Dash</div>
+        <div><b>CLICK</b> - Shoot</div>
+        <div><b>R-CLICK</b> - Grapple</div>
+        <div><b>1-5</b> - Weapons</div>
+        <div><b>ENTER</b> - Chat</div>
+        <div><b>L</b> - Menu / Settings</div>
+    </div>
+
+    <div id="chatBox" style="display:none;">
+        <div id="chatMessages"></div>
+        <input id="chatInput" placeholder="Type message...">
+    </div>
+
     <div id="pauseMenu">
         <div class="glass-panel menuPanel">
             <h2 style="margin-top:0; color:#fff;">PAUSED</h2>
-            
             <div class="tabs">
                 <button class="tabBtn active" onclick="switchTab('shop')">Shop</button>
                 <button class="tabBtn" onclick="switchTab('settings')">Settings</button>
             </div>
-
             <div id="tab-shop" class="section active">
                 <h4 style="color:gold; margin:0 0 10px 0;">Balance: <span id="cpDisplay">0</span> CP</h4>
-                <div class="shopItem">
-                    <span>Top Hat (Classy)</span> <button class="btn btn-green" style="width:auto; padding:5px 15px;" onclick="buy('hat_top')">100</button>
-                </div>
-                <div class="shopItem">
-                    <span>Fez (Cool)</span> <button class="btn btn-green" style="width:auto; padding:5px 15px;" onclick="buy('hat_fez')">250</button>
-                </div>
+                <div class="shopItem"><span>Top Hat</span> <button class="btn btn-green" style="width:auto; padding:5px 15px;" onclick="buy('hat_top')">100</button></div>
+                <div class="shopItem"><span>Fez</span> <button class="btn btn-green" style="width:auto; padding:5px 15px;" onclick="buy('hat_fez')">250</button></div>
             </div>
-
             <div id="tab-settings" class="section">
-                <div class="shopItem">
-                    <span>Change Name</span>
-                    <div style="display:flex; gap:5px;">
-                        <input id="newName" placeholder="New Name" style="padding:5px; width:100px;">
-                        <button class="btn btn-blue" style="width:auto; padding:5px;" onclick="rename()">Set</button>
-                    </div>
-                </div>
-                <div class="shopItem">
-                    <span>Show Names</span> <input type="checkbox" checked onchange="toggleNames(this.checked)">
-                </div>
-                <div class="shopItem">
-                    <span>Background Dim</span> <input type="range" min="0" max="100" oninput="bgDim = this.value/100">
-                </div>
+                <div class="shopItem"><span>Change Name</span> <div style="display:flex; gap:5px;"><input id="newName" placeholder="New Name" style="padding:5px; width:100px;"><button class="btn btn-blue" style="width:auto; padding:5px;" onclick="rename()">Set</button></div></div>
+                <div class="shopItem"><span>Show Names</span> <input type="checkbox" checked onchange="toggleNames(this.checked)"></div>
+                <div class="shopItem"><span>Background Dim</span> <input type="range" min="0" max="100" oninput="bgDim = this.value/100"></div>
             </div>
-
-            <br>
-            <button class="btn btn-blue" onclick="toggleMenu()">Resume Game</button>
+            <br><button class="btn btn-blue" onclick="toggleMenu()">Resume Game</button>
         </div>
     </div>
 
-    <div id="hud">
-        <div class="hud-bar" id="weaponBar"></div>
-    </div>
-
+    <div id="hud"><div class="hud-bar" id="weaponBar"></div></div>
     <canvas id="game"></canvas>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -151,8 +139,7 @@
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
 
         let myId = null, gameActive = false, showMenu = false, rgbTick = 0;
-        let bgDim = 0.2;
-        let showNames = true;
+        let bgDim = 0.2, showNames = true;
 
         function val(id) { return document.getElementById(id).value; }
         function login() { socket.emit('login', { user: val('user'), pass: val('pass'), color: val('color') }); }
@@ -171,7 +158,21 @@
             myId = d.id;
             document.getElementById('mainMenu').style.display = 'none';
             document.getElementById('hud').style.display = 'block';
+            document.getElementById('controlsHelp').style.display = 'block';
+            document.getElementById('chatBox').style.display = 'block';
             gameActive = true;
+        });
+
+        // CHAT LOGIC
+        const chatInput = document.getElementById('chatInput');
+        const chatMessages = document.getElementById('chatMessages');
+
+        socket.on('chatMsg', (data) => {
+            const line = document.createElement('div');
+            line.className = 'chat-line';
+            line.innerHTML = `<span style="color:${data.color}; font-weight:bold;">${data.user}:</span> <span style="color:#eee;">${data.text}</span>`;
+            chatMessages.appendChild(line);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         });
 
         // INPUTS
@@ -185,6 +186,23 @@
         window.oncontextmenu = e => e.preventDefault();
         
         window.onkeydown = e => {
+            // IF CHAT IS OPEN, BLOCK GAME INPUTS
+            if(document.activeElement === chatInput) {
+                if(e.code === 'Enter') {
+                    socket.emit('chat', chatInput.value);
+                    chatInput.value = '';
+                    chatInput.classList.remove('visible');
+                    chatInput.blur(); // Unfocus
+                }
+                return; // Stop here, don't process game keys
+            }
+
+            if(e.code === 'Enter') {
+                chatInput.classList.add('visible');
+                chatInput.focus();
+                return;
+            }
+
             keys[e.code] = true;
             if(e.code === 'KeyL') toggleMenu();
             if(e.key >= 1 && e.key <= 5) socket.emit('switch', parseInt(e.key)-1);
@@ -208,7 +226,6 @@
             const me = state.players[myId];
             if(!me) return;
 
-            // Update HUD
             if(me.inventory) {
                 let html = "";
                 me.inventory.forEach((w, i) => {
@@ -219,59 +236,33 @@
             }
             document.getElementById('cpDisplay').innerText = me.money;
 
-            // Render
-            rgbTick += 2; 
-            const rainbow = `hsl(${rgbTick}, 100%, 50%)`;
+            rgbTick += 2; const rainbow = `hsl(${rgbTick}, 100%, 50%)`;
             const cam = { x: me.x - canvas.width/2 + 20, y: me.y - canvas.height/2 + 20 };
 
-            // SOLID BACKGROUND CLEAR (Fixes Motion Blur)
-            ctx.fillStyle = "#121212"; 
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            ctx.save();
-            ctx.translate(-cam.x, -cam.y);
+            ctx.fillStyle = "#121212"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.save(); ctx.translate(-cam.x, -cam.y);
 
-            // Walls
             ctx.fillStyle = '#2a2a35';
             state.walls.forEach(w => { ctx.fillRect(w.x, w.y, w.w, w.h); ctx.strokeStyle='#3a3a45'; ctx.strokeRect(w.x, w.y, w.w, w.h); });
 
             for(let id in state.players) {
                 const p = state.players[id];
                 const isOwner = (p.maxHp >= 300);
-                
-                // Grapple
-                if(p.grapple.active) { 
-                    ctx.beginPath(); ctx.moveTo(p.x+20, p.y+20); ctx.lineTo(p.grapple.x, p.grapple.y); 
-                    ctx.strokeStyle = isOwner ? rainbow : '#fff'; ctx.lineWidth=2; ctx.stroke(); 
-                }
+                if(p.grapple.active) { ctx.beginPath(); ctx.moveTo(p.x+20, p.y+20); ctx.lineTo(p.grapple.x, p.grapple.y); ctx.strokeStyle = isOwner ? rainbow : '#fff'; ctx.lineWidth=2; ctx.stroke(); }
+                ctx.fillStyle = isOwner ? rainbow : p.color; ctx.fillRect(p.x, p.y, p.w, p.h);
 
-                // Body
-                ctx.fillStyle = isOwner ? rainbow : p.color;
-                ctx.fillRect(p.x, p.y, p.w, p.h);
-
-                // Hat
                 if(p.hat === 'hat_top') { ctx.fillStyle='#111'; ctx.fillRect(p.x, p.y-10, 40, 10); ctx.fillRect(p.x+5, p.y-35, 30, 25); }
                 else if(p.hat === 'hat_fez') { ctx.fillStyle='#b00'; ctx.fillRect(p.x+5, p.y-15, 30, 15); ctx.fillStyle='gold'; ctx.fillRect(p.x+15, p.y-15, 5, 10); }
 
-                // Eyes
-                const angle = p.angle;
-                const ex = Math.cos(angle)*5, ey = Math.sin(angle)*5;
+                const angle = p.angle; const ex = Math.cos(angle)*5, ey = Math.sin(angle)*5;
                 ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(p.x+10, p.y+15, 6, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(p.x+30, p.y+15, 6, 0, 7); ctx.fill();
                 ctx.fillStyle='black'; ctx.beginPath(); ctx.arc(p.x+10+ex, p.y+15+ey, 3, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(p.x+30+ex, p.y+15+ey, 3, 0, 7); ctx.fill();
 
-                if(showNames) {
-                    ctx.fillStyle = isOwner ? rainbow : 'white'; ctx.font = isOwner ? 'bold 14px Arial' : '12px Arial';
-                    ctx.fillText(p.username, p.x, p.y - 25);
-                }
-                // HP
-                ctx.fillStyle='red'; ctx.fillRect(p.x, p.y-10, 40, 5); 
-                ctx.fillStyle='#00e676'; ctx.fillRect(p.x, p.y-10, 40*(p.hp/p.maxHp), 5);
+                if(showNames) { ctx.fillStyle = isOwner ? rainbow : 'white'; ctx.font = isOwner ? 'bold 14px Arial' : '12px Arial'; ctx.fillText(p.username, p.x, p.y - 25); }
+                ctx.fillStyle='red'; ctx.fillRect(p.x, p.y-10, 40, 5); ctx.fillStyle='#00e676'; ctx.fillRect(p.x, p.y-10, 40*(p.hp/p.maxHp), 5);
             }
 
-            state.bullets.forEach(b => { 
-                ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI*2); 
-                ctx.fillStyle = (b.size > 10) ? rainbow : b.color; ctx.fill(); 
-            });
+            state.bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI*2); ctx.fillStyle = (b.size > 10) ? rainbow : b.color; ctx.fill(); });
             ctx.restore();
         });
 
